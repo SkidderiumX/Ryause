@@ -260,6 +260,23 @@ public class KillAuraModule extends Module {
         return takeRotations();
     }
 
+    /**
+     * u20+ change, not in the dump: "Disable while blocking" only counts a real block (sword in use). u20 used R059.m690,
+     * which also counts KillAura's own fake block (R171.f58576), so AutoBlock lag (Swap, Interact A-D) cancelled every hit.
+     */
+    private static boolean reallyBlocking() {
+        Minecraft mc = Minecraft.getMinecraft();
+        return mc.thePlayer.isUsingItem() && mc.thePlayer.getItemInUse().getItem().getItemUseAction(mc.thePlayer.getItemInUse()) == net.minecraft.item.EnumAction.BLOCK;
+    }
+
+    /**
+     * u20+ change, not in the dump: with "Disable while mining" off, holding left-click on a block does not start or
+     * continue breaking it while KillAura has a target (see MixinMinecraft). In u20 both happened at once.
+     */
+    public static boolean preventsMining() {
+        return instance != null && instance.isEnabled() && disableWhileMining != null && !disableWhileMining.isToggled() && target != null;
+    }
+
     public static boolean hasTarget() {
         return exists(target);
     }
@@ -1272,7 +1289,7 @@ public class KillAuraModule extends Module {
                     } else if (!inReach) {
                         attack = false;
                     }
-                    if (disableWhileBlocking.isToggled() && PlayerUtils.isBlocking()) {
+                    if (disableWhileBlocking.isToggled() && reallyBlocking()) {
                         swing = false;
                         attack = false;
                     } else if (AntiKnockbackModule.disableAttackWhileDelay.isToggled() && AntiKnockbackModule.delayUntil.get() != 0L) {
@@ -1312,7 +1329,7 @@ public class KillAuraModule extends Module {
                 if (blockAllowed() && blockState == 1 && autoBlock.interacts) {
                     boolean interact = true;
                     boolean block = true;
-                    if (disableWhileBlocking.isToggled() && PlayerUtils.isBlocking()) {
+                    if (disableWhileBlocking.isToggled() && reallyBlocking()) {
                         interact = false;
                     }
                     if (inReach && interact) {
@@ -1457,7 +1474,7 @@ public class KillAuraModule extends Module {
         rotations = null;
         if (DisplaceModule.queued) {
             DisplaceModule.queued = false;
-            if (!(rot == null || target == null || attackedThisTick || disableWhileBlocking.isToggled() && PlayerUtils.isBlocking()
+            if (!(rot == null || target == null || attackedThisTick || disableWhileBlocking.isToggled() && reallyBlocking()
                     || !PlayerUtils.rayHits(target.entity, rot[0], rot[1], attackRange))) {
                 rot[0] = rot[0] + DisplaceModule.offset();
                 ++forcedAttacks;

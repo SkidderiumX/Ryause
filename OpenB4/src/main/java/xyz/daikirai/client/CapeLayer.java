@@ -29,6 +29,20 @@ public final class CapeLayer {
         draw(rl, renderPlayer, player, partialTicks);
     }
 
+    /** u20+: LunarForge's replacement for LayerCape (com.example.lunarforge.cosmetics.render.CosmeticLayers$Cloak) */
+    public static boolean isLunarForgeCloak(Object layer) {
+        return layer != null && layer.getClass().getName().equals("com.example.lunarforge.cosmetics.render.CosmeticLayers$Cloak");
+    }
+
+    /** u20+: draw only Raven's custom cape (same checks as {@link #render}); false when there is none to draw */
+    public static boolean renderCustom(RenderPlayer renderPlayer, AbstractClientPlayer player, float partialTicks) {
+        if (!player.hasPlayerInfo() || player.isInvisible() || !player.isUser() || SettingsModule.cape == SettingsModule.Cape.None) {
+            return false;
+        }
+        draw(SettingsModule.cape.texture, renderPlayer, player, partialTicks);
+        return true;
+    }
+
     public static void draw(ResourceLocation rl, RenderPlayer renderPlayer, AbstractClientPlayer p, float f) {
         GlStateManager.color(1.0f, 1.0f, 1.0f, 1.0f);
         renderPlayer.bindTexture(rl);

@@ -424,6 +424,12 @@ public final class Hooks {
             xyz.daikirai.client.CapeLayer.render((RenderPlayer) (Object) renderer, (AbstractClientPlayer) e, f3);
             return;
         }
+        // u20+ addition, not in the dump: LunarForge swaps LayerCape for its own cloak layer, so the check above never
+        // matches. Draw Raven's custom cape in its place; otherwise let LunarForge's layer render as usual.
+        if (e instanceof AbstractClientPlayer && xyz.daikirai.client.CapeLayer.isLunarForgeCloak(layer)
+                && xyz.daikirai.client.CapeLayer.renderCustom((RenderPlayer) (Object) renderer, (AbstractClientPlayer) e, f3)) {
+            return;
+        }
         layer.doRenderLayer(e, f, f2, f3, f4, f5, f6, f7);
     }
 
