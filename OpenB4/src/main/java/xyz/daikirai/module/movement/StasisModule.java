@@ -38,8 +38,8 @@ public class StasisModule extends Module {
     // StasisConfig values: Mode = Flag, cancel on death off, pulse on (Pulse slider at min = off)
     private static final boolean FLAGLESS = false;
     private static final boolean CANCEL_ON_DEATH = false;
-    private static final int VELOCITY_TICKS = 1;
-    private static final int VELOCITY_BLOCK_TICKS = 1;
+    private static final int VELOCITY_TICKS = 2;
+    private static final int VELOCITY_BLOCK_TICKS = 2;
     private static final int PULSE_TICKS = 1;
     private static final int BLOCK_AFTER_DISABLE = 3;
     private static final float MAX_FALL = 0.5f;

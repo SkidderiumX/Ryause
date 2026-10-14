@@ -671,6 +671,11 @@ public final class Hooks {
         }
         PacketUtils.trackReceived(packet);
         Module m;
+        // Simple Utils Stasis listens at NetworkManager.channelRead0 HEAD, ahead of everything else
+        if ((packet instanceof S08PacketPlayerPosLook || packet instanceof S12PacketEntityVelocity || packet instanceof S27PacketExplosion)
+                && (m = any("Stasis")) != null && !m.onReceivePacketAlways(packet, handler)) {
+            return;
+        }
         if ((m = any("Latency Alerts")) != null) m.onPacketReceivedAlways();
         if (ScriptManager.events != null && !ScriptEvents.packetReceived(packet)) {
             return;
@@ -686,10 +691,6 @@ public final class Hooks {
         }
         if (packet instanceof S08PacketPlayerPosLook && mc.thePlayer != null) {
             PacketUtils.lastPosLook = System.currentTimeMillis();
-        }
-        if ((packet instanceof S08PacketPlayerPosLook || packet instanceof S12PacketEntityVelocity || packet instanceof S27PacketExplosion)
-                && (m = any("Stasis")) != null && !m.onReceivePacketAlways(packet, handler)) {
-            return;
         }
         if (packet instanceof S08PacketPlayerPosLook && (m = any("NoRotate")) != null && !m.onReceivePacketAlways(packet, handler)) {
             return;
