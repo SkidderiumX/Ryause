@@ -239,8 +239,12 @@ public final class ModuleManager {
                 labels.put(Double.parseDouble(l.getKey()), l.getValue().getAsString());
             }
         }
-        return new SliderSetting(name, s.get("prefix").getAsString(), s.get("suffix").getAsString(), s.get("value").getAsDouble(),
+        SliderSetting slider = new SliderSetting(name, s.get("prefix").getAsString(), s.get("suffix").getAsString(), s.get("value").getAsDouble(),
                 s.get("min").getAsDouble(), s.get("max").getAsDouble(), s.get("step").getAsDouble(), options, labels);
+        if (s.has("compatMax")) {
+            slider.compatMax = s.get("compatMax").getAsInt();
+        }
+        return slider;
     }
 
     private static final Map<String, Module> byName = new HashMap<String, Module>();

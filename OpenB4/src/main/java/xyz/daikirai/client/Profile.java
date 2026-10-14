@@ -100,6 +100,11 @@ public class Profile {
                                     slider.setValue(d);
                                 }
                             }
+                            // a mode index newer than older builds know (see SliderSetting.compatMax)
+                            Double ext = number(o, s.getName() + " (ext)");
+                            if (ext != null && ((SliderSetting) s).compatMax >= 0) {
+                                ((SliderSetting) s).setValue(ext);
+                            }
                         } else if (s instanceof ButtonSetting) {
                             Boolean b = bool(o, s.getName());
                             if (b != null) {
@@ -175,7 +180,13 @@ public class Profile {
                     for (Setting s : m.getSettings()) {
                         if (!s.saved) continue;
                         if (s instanceof SliderSetting) {
-                            w.name(s.getName()).value(((SliderSetting) s).getInput());
+                            SliderSetting slider = (SliderSetting) s;
+                            if (slider.isCompat()) {
+                                w.name(s.getName()).value(slider.getInput());
+                            } else {
+                                w.name(s.getName()).value(slider.compatValue);
+                                w.name(s.getName() + " (ext)").value(slider.getInput());
+                            }
                         } else if (s instanceof ButtonSetting) {
                             w.name(s.getName()).value(((ButtonSetting) s).isToggled());
                         }

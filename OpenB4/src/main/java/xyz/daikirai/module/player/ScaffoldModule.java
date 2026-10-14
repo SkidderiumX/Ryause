@@ -10,6 +10,7 @@ import xyz.daikirai.module.Module;
 import xyz.daikirai.module.ModuleManager;
 import xyz.daikirai.module.SettingsModule;
 import xyz.daikirai.module.setting.ButtonSetting;
+import xyz.daikirai.module.setting.Setting;
 import xyz.daikirai.module.setting.SliderSetting;
 import xyz.daikirai.util.BlockUtils;
 import xyz.daikirai.util.FakeRotation;
@@ -47,6 +48,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BooleanSupplier;
 
 public class ScaffoldModule extends Module {
     private static final Minecraft mc = Minecraft.getMinecraft();
@@ -94,6 +96,9 @@ public class ScaffoldModule extends Module {
         }
 
         public boolean canSprint() {
+            if (snapRunning) {
+                return true;
+            }
             if (!this.canFastScaffold()) {
                 if (mc.thePlayer.ticksExisted == startTick && jumpState == 2) {
                     return false;
@@ -131,7 +136,7 @@ public class ScaffoldModule extends Module {
         }
 
         public boolean canFastScaffold() {
-            if (!active || this == Disabled) {
+            if (!active || this == Disabled || snapRunning) {
                 return false;
             }
             if (TowerModule.towering || PlayerUtils.jumpKeyDown()) {
@@ -194,6 +199,8 @@ public class ScaffoldModule extends Module {
     public static Theme theme = Theme.DEFAULT;
 
     public static boolean active;
+    /** Snap mode ({@link SnapScaffold}) is running instead of the scaffold below */
+    public static boolean snapRunning;
     public static boolean disablingModule;
     private static boolean fastEnabled;
     private static boolean rightHeld;
@@ -255,6 +262,36 @@ public class ScaffoldModule extends Module {
         slowOnEnable = (ButtonSetting) ModuleManager.setting(this, "Slow on enable");
         slowSpeedPotion = (ButtonSetting) ModuleManager.setting(this, "Slow speed potion");
         tower = (ButtonSetting) ModuleManager.setting(this, "Tower");
+        SnapScaffold.mode = (SliderSetting) ModuleManager.setting(this, "Snap fast mode");
+        SnapScaffold.rotations = (SliderSetting) ModuleManager.setting(this, "Snap rotations");
+        SnapScaffold.rotationSpeed = (SliderSetting) ModuleManager.setting(this, "Snap rotation speed");
+        SnapScaffold.tower = (SliderSetting) ModuleManager.setting(this, "Snap tower");
+        SnapScaffold.timerTicks = (SliderSetting) ModuleManager.setting(this, "Snap timer ticks");
+        SnapScaffold.sneakEvery = (SliderSetting) ModuleManager.setting(this, "Snap sneak every");
+        SnapScaffold.tellyRmb = (ButtonSetting) ModuleManager.setting(this, "Snap telly RMB");
+
+        // Snap settings show only while Rotation is "Snap", and only the ones the chosen sub-modes read
+        BooleanSupplier snap = SnapScaffold::enabled;
+        show(snap, SnapScaffold.mode, SnapScaffold.rotations, SnapScaffold.tower, SnapScaffold.sneakEvery);
+        show(() -> snap.getAsBoolean() && SnapScaffold.mode.getInput() != 2.0, SnapScaffold.rotationSpeed);   // Watchdog3 snaps
+        show(() -> snap.getAsBoolean() && SnapScaffold.mode.getInput() != 0.0, SnapScaffold.tellyRmb);
+        show(() -> snap.getAsBoolean() && SnapScaffold.tower.getInput() == 2.0, SnapScaffold.timerTicks);      // Watchdog Low
+        // Raven's own scaffold settings that Snap bypasses
+        show(() -> !snap.getAsBoolean(), motion, fastScaffoldSetting, fastScaffoldRmbSetting, fastScaffoldMotion, multiPlaceSetting,
+                precisionSetting, sneakEvery, speedBoost, autoSwap, jumpFacingForward, legitMotion, safeWalk, slowOnEnable,
+                slowSpeedPotion, tower);
+    }
+
+    private static void show(BooleanSupplier when, Setting... settings) {
+        for (Setting s : settings) {
+            s.visibility = when;
+        }
+    }
+
+    /** records a block placed outside {@link #place} (Snap) for the Highlight blocks fade */
+    public static void markPlaced(BlockPos pos) {
+        placedAt = System.currentTimeMillis();
+        placed.put(pos, placedAt);
     }
 
     @Override
@@ -279,27 +316,73 @@ public class ScaffoldModule extends Module {
 
     @Override
     public void onPreUpdate() {
+        boolean snap = SnapScaffold.enabled();
+        if (snap != snapRunning) {
+            // Snap mode switched while enabled: hand over cleanly
+            if (snap) {
+                stop();
+                SnapScaffold.onEnable();
+            } else {
+                SnapScaffold.onDisable();
+                active = false;
+            }
+            snapRunning = snap;
+        }
+        if (snapRunning) {
+            snapUpdate();
+            return;
+        }
         update();
     }
 
     @Override
     public void onPreMotion(MotionEvent e) {
+        if (snapRunning) {
+            if (active) SnapScaffold.onPreMotion(e);
+            return;
+        }
         preMotion(e);
     }
 
     @Override
     public void onPostPlayerInputAlways() {
+        if (snapRunning) {
+            if (active) SnapScaffold.onPostPlayerInput();
+            return;
+        }
         postPlayerInput();
     }
 
     @Override
     public boolean stopsOnEdge() {
-        return stopOnEdge();
+        return !snapRunning && stopOnEdge();
     }
 
     @Override
     public float[] getRotations(float yaw, float pitch) {
+        if (snapRunning) {
+            return active ? SnapScaffold.getRotations(yaw, pitch) : null;
+        }
         return rotations(yaw, pitch);
+    }
+
+    /** onPreUpdate while Snap mode runs: block count, the active flag other modules read, then SnapScaffold */
+    private static void snapUpdate() {
+        if (showBlockCount.isToggled()) {
+            updateCount();
+        }
+        if (Overlay.screenOpen() || PlayerUtils.isAdventure()) {
+            return;
+        }
+        if (!active) {
+            startTick = mc.thePlayer.ticksExisted;
+            startedAt = System.currentTimeMillis();
+            startPitch = mc.thePlayer.rotationPitch;
+            KeyUtils.release(mc.gameSettings.keyBindAttack);
+            KeyUtils.release(mc.gameSettings.keyBindUseItem);
+        }
+        active = true;
+        SnapScaffold.onPreUpdate();
     }
 
     @SubscribeEvent
@@ -312,6 +395,11 @@ public class ScaffoldModule extends Module {
 
     @Override
     public void onEnable() {
+        if (SnapScaffold.enabled()) {
+            snapRunning = true;
+            SnapScaffold.onEnable();
+            return;
+        }
         if (autoSwap.isToggled()) {
             AutoSwapModule.remember(SwapSlot.Scaffold);
         }
@@ -332,6 +420,15 @@ public class ScaffoldModule extends Module {
 
     @Override
     public void onDisable() {
+        if (snapRunning) {
+            SnapScaffold.onDisable();
+            if (active) {
+                stoppedAt = System.currentTimeMillis();
+                active = false;
+            }
+            snapRunning = false;
+            return;
+        }
         disablingModule = true;
         stop();
         legitTicks = 0;
@@ -349,7 +446,8 @@ public class ScaffoldModule extends Module {
 
     @Override
     public void guiUpdate() {
-        rotation = Rotation.values()[(int) rotationSetting.getInput()];
+        // "Snap" (past the Rotation enum) hands off to SnapScaffold; keep the last real rotation for the rest
+        rotation = Rotation.values()[(int) (rotationSetting.isCompat() ? rotationSetting.getInput() : rotationSetting.compatValue)];
         fakeRotation = FakeRotation.values()[(int) fakeRotationSetting.getInput()];
         fastScaffold = FastScaffold.values()[(int) (rightHeld ? fastScaffoldRmbSetting.getInput() : fastScaffoldSetting.getInput())];
         multiPlace = MultiPlace.values()[(int) multiPlaceSetting.getInput()];
@@ -360,6 +458,9 @@ public class ScaffoldModule extends Module {
 
     @Override
     public String getInfo() {
+        if (SnapScaffold.enabled()) {
+            return SnapScaffold.mode.getInput() == 0.0 ? "Snap" : SnapScaffold.mode.getDisplay(false);
+        }
         if (fastScaffold == FastScaffold.Disabled) {
             return rotationSetting.getDisplay(false);
         }
@@ -1240,7 +1341,7 @@ public class ScaffoldModule extends Module {
 
     public static boolean towerAllowed() {
         long l;
-        return tower.isToggled() && active && ((l = sincePlace()) < 400L || l > 700L);
+        return tower.isToggled() && active && !snapRunning && ((l = sincePlace()) < 400L || l > 700L);
     }
 
     private static void preMotion(MotionEvent e) {

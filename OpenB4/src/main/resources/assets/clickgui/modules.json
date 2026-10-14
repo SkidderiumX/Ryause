@@ -3926,7 +3926,7 @@
     "suffix": "",
     "value": 1.0,
     "min": 0.0,
-    "max": 5.0,
+    "max": 6.0,
     "step": 1.0,
     "options": [
      "None",
@@ -3934,10 +3934,110 @@
      "Smooth",
      "Simple",
      "Lazy",
-     "Offset"
+     "Offset",
+     "Snap"
     ],
     "labels": {
      "0.0": "§cNone"
+    },
+    "compatMax": 5
+   },
+   {
+    "t": "mode",
+    "name": "Snap fast mode",
+    "prefix": "",
+    "suffix": "",
+    "value": 0.0,
+    "min": 0.0,
+    "max": 2.0,
+    "step": 1.0,
+    "options": [
+     "Disabled",
+     "Telly",
+     "Watchdog3"
+    ],
+    "labels": {
+     "0.0": "§cDisabled"
+    }
+   },
+   {
+    "t": "mode",
+    "name": "Snap rotations",
+    "prefix": "",
+    "suffix": "",
+    "value": 0.0,
+    "min": 0.0,
+    "max": 4.0,
+    "step": 1.0,
+    "options": [
+     "HitVec",
+     "Backward",
+     "Offset",
+     "Raycast",
+     "Raycast2"
+    ],
+    "labels": null
+   },
+   {
+    "t": "slider",
+    "name": "Snap rotation speed",
+    "prefix": "",
+    "suffix": "",
+    "value": 2.0,
+    "min": 0.5,
+    "max": 10.0,
+    "step": 0.5,
+    "options": null,
+    "labels": null
+   },
+   {
+    "t": "toggle",
+    "name": "Snap telly RMB",
+    "value": false
+   },
+   {
+    "t": "mode",
+    "name": "Snap tower",
+    "prefix": "",
+    "suffix": "",
+    "value": 0.0,
+    "min": 0.0,
+    "max": 2.0,
+    "step": 1.0,
+    "options": [
+     "Disabled",
+     "Watchdog",
+     "Watchdog Low"
+    ],
+    "labels": {
+     "0.0": "§cDisabled"
+    }
+   },
+   {
+    "t": "slider",
+    "name": "Snap timer ticks",
+    "prefix": "",
+    "suffix": " ticks",
+    "value": 10.0,
+    "min": 2.0,
+    "max": 15.0,
+    "step": 1.0,
+    "options": null,
+    "labels": null
+   },
+   {
+    "t": "slider",
+    "name": "Snap sneak every",
+    "prefix": "",
+    "suffix": " ticks",
+    "value": 0.0,
+    "min": 0.0,
+    "max": 26.0,
+    "step": 1.0,
+    "options": null,
+    "labels": {
+     "0.0": "§cDisabled",
+     "1.0": "§b1 tick"
     }
    },
    {

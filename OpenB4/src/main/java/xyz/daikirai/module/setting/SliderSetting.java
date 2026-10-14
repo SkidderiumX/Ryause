@@ -14,6 +14,13 @@ public class SliderSetting extends Setting {
     public String settingName;
     public double input;
     public String suffix = "";
+    /**
+     * Highest mode index older builds know (-1 = all). A profile stores a newer index under "&lt;name&gt; (ext)" and
+     * {@link #compatValue} under the name, so older builds never load an index they don't have.
+     */
+    public int compatMax = -1;
+    /** last value older builds understand */
+    public double compatValue;
 
     public SliderSetting(String name, String prefix, String suffix, double value, double min, double max, double interval, String[] options, HashMap<Double, String> labels) {
         super(name);
@@ -22,6 +29,7 @@ public class SliderSetting extends Setting {
         this.suffix = suffix == null ? "" : suffix;
         this.value = this.input = value;
         this.defaultValue = this.input;
+        this.compatValue = this.input;
         this.min = min;
         this.max = max;
         this.interval = interval;
@@ -73,7 +81,19 @@ public class SliderSetting extends Setting {
             this.value = d;
             xyz.daikirai.client.Profiles.markModified();
         }
+        this.rememberCompat(d);
         this.setVisualInput(d);
+    }
+
+    private void rememberCompat(double d) {
+        if (this.compatMax < 0 || d <= this.compatMax) {
+            this.compatValue = d;
+        }
+    }
+
+    /** the value older builds can load */
+    public boolean isCompat() {
+        return this.compatMax < 0 || this.value <= this.compatMax;
     }
 
     public static void order(SliderSetting min, SliderSetting max) {
@@ -86,6 +106,7 @@ public class SliderSetting extends Setting {
 
     public void setValueRaw(double d) {
         this.value = d;
+        this.rememberCompat(d);
         this.setVisualInput(d);
         xyz.daikirai.client.Profiles.markModified();
     }

@@ -54,6 +54,14 @@ public class ModuleComponent extends Component {
         this.settings.add(new BindComponent(this, mod, y));
     }
 
+    /** settings whose {@link Setting#isVisible()} is false take no space and get no input */
+    private static boolean shown(Component c) {
+        Setting s = c instanceof SliderComponent ? ((SliderComponent) c).sliderSetting
+                : c instanceof ButtonComponent ? ((ButtonComponent) c).buttonSetting
+                : c instanceof DescriptionComponent ? ((DescriptionComponent) c).desc : null;
+        return s == null || s.isVisible();
+    }
+
     public float top() {
         return this.categoryComponent.getY() + this.offset - 1.0f;
     }
@@ -75,6 +83,7 @@ public class ModuleComponent extends Component {
         this.offset = this.yPos = n;
         float y = this.offset + 16.0f;
         for (Component c : this.settings) {
+            if (!shown(c)) continue;
             c.setOffset(y);
             y += c.getHeight();
         }
@@ -86,6 +95,7 @@ public class ModuleComponent extends Component {
             return;
         }
         for (Component c : this.settings) {
+            if (!shown(c)) continue;
             c.onGuiClosed();
         }
     }
@@ -112,6 +122,7 @@ public class ModuleComponent extends Component {
             return;
         }
         for (Component c : this.settings) {
+            if (!shown(c)) continue;
             c.mouseReleased(x, y, m);
         }
     }
@@ -125,6 +136,7 @@ public class ModuleComponent extends Component {
         float h = this.height;
         if (this.opened || this.closing) {
             for (Component c : this.settings) {
+                if (!shown(c)) continue;
                 h += c.getHeight();
             }
             if (this.animation != null) {
@@ -165,6 +177,7 @@ public class ModuleComponent extends Component {
             return false;
         }
         for (Component c : this.settings) {
+            if (!shown(c)) continue;
             if (!c.mouseClicked(x, y, b)) continue;
             return true;
         }
@@ -174,6 +187,7 @@ public class ModuleComponent extends Component {
     @Override
     public void updatePosition(int x, int y) {
         for (Component c : this.settings) {
+            if (!shown(c)) continue;
             c.updatePosition(x, y);
         }
     }
@@ -184,6 +198,7 @@ public class ModuleComponent extends Component {
             return;
         }
         for (Component c : this.settings) {
+            if (!shown(c)) continue;
             c.keyTyped(t, k);
         }
     }
@@ -243,6 +258,7 @@ public class ModuleComponent extends Component {
         if ((this.opened || this.closing) && !this.settings.isEmpty()) {
             float end = y - this.height + this.getHeight();
             for (Component c : this.settings) {
+                if (!shown(c)) continue;
                 if (y + c.getHeight() - 4.0f > end) break;
                 c.render(mouseX, mouseY);
                 y += c.getHeight();
