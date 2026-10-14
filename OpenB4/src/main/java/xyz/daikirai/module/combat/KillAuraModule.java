@@ -1205,7 +1205,9 @@ public class KillAuraModule extends Module {
                                         if (currentAps >= 10.0) {
                                             attackQueued = true;
                                         }
-                                        if (!attackQueued) break;
+                                        // u20+ change, not in the dump: only enter the attack/reblock phase when the attack below can run.
+                                        // u20 advanced on attackQueued alone, so a blocked attack looped unblock -> 0 -> 1 with no hit.
+                                        if (!attackQueued || !canAttack || !slotFree(true) || !PacketUtils.noAttackPlaceOrDig()) break;
                                         ++blockState;
                                         if (autoBlock != AutoBlock.Interact_B && autoBlock != AutoBlock.Interact_C || PacketUtils.lastUse == -1) break;
                                         PlayerUtils.sendSlot(mc.thePlayer.inventory.currentItem);
@@ -1242,6 +1244,10 @@ public class KillAuraModule extends Module {
                                         canAttack = false;
                                     }
                                 }
+                                if (blockState != 1) {
+                                    // u20+ change, not in the dump: a forced attack (Attack on damage) also waits for the attack/reblock phase.
+                                    canAttack = false;
+                                }
                                 break;
                             }
                             if (BedAuraModule.allowKillAura.isToggled()) {
@@ -1271,8 +1277,9 @@ public class KillAuraModule extends Module {
             }
         }
         if (attackQueued && PacketUtils.noAttackPlaceOrDig()) {
-            attackQueued = false;
             if (canAttack) {
+                // u20+ change, not in the dump: u20 cleared attackQueued before checking canAttack, dropping the hit.
+                attackQueued = false;
                 Entity entity = target.entity;
                 boolean swinging = inSwingRange;
                 boolean inReach = false;
