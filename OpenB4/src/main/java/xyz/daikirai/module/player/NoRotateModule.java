@@ -29,9 +29,6 @@ public class NoRotateModule extends Module {
 
     private static void onS08(S08PacketPlayerPosLook p) {
         lastS08 = System.currentTimeMillis();
-        if (xyz.daikirai.module.movement.StasisModule.frozen) {
-            xyz.daikirai.module.movement.StasisModule.onS08();
-        }
         if (xyz.daikirai.module.movement.TimerModule.instance != null) {
             xyz.daikirai.module.movement.TimerModule.onS08();
         }

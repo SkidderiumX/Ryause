@@ -16,6 +16,11 @@ public class MixinEntityPlayerSP {
         Hooks.onUpdate();
     }
 
+    @Inject(method = "onUpdate", at = @At("RETURN"))
+    private void clickgui$afterUpdate(CallbackInfo ci) {
+        xyz.daikirai.module.movement.StasisModule.afterPlayerUpdate((EntityPlayerSP) (Object) this);
+    }
+
     @Inject(method = "onUpdateWalkingPlayer", at = @At("HEAD"), cancellable = true)
     private void clickgui$onUpdateWalkingPlayer(CallbackInfo ci) {
         Hooks.onUpdateWalkingPlayer();

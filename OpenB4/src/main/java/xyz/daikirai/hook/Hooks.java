@@ -121,7 +121,7 @@ public final class Hooks {
         if ((m = any("Hitbox")) != null) m.onPreUpdateAlways();
         if ((m = any("AntiFireball")) != null) m.onPreUpdateAlways();
         String[] enabledOrder2 = {"BedAura", "AutoRod", "Long Jump", "InvManager", "WoolWars", "AutoClicker", "AutoRequeue",
-                "AutoWho", "Lag Range", "Limbo", "AutoLadder", "Water Bucket", "WTap", "Stasis", "Sprint"};
+                "AutoWho", "Lag Range", "Limbo", "AutoLadder", "Water Bucket", "WTap", "Sprint"};
         for (String name : enabledOrder2) {
             if ((m = on(name)) != null) m.onPreUpdate();
         }
@@ -267,10 +267,11 @@ public final class Hooks {
 
     public static void postPlayerInput() {
         Module m;
+        if ((m = any("Stasis")) != null) m.onPostPlayerInputAlways();
         if ((m = any("Scaffold")) != null) m.onPostPlayerInputAlways();
         if ((m = any("Tower")) != null) m.onPostPlayerInputAlways();
         String[] order = {"Freecam", "KillAura", "Bhop", "NoSlow", "SafeWalk", "Long Jump", "Dolphin", "AntiAFK", "InvMove",
-                "TargetStrafe", "Stasis"};
+                "TargetStrafe"};
         for (String name : order) {
             if ((m = on(name)) != null) m.onPostPlayerInput();
         }
@@ -686,6 +687,10 @@ public final class Hooks {
         if (packet instanceof S08PacketPlayerPosLook && mc.thePlayer != null) {
             PacketUtils.lastPosLook = System.currentTimeMillis();
         }
+        if ((packet instanceof S08PacketPlayerPosLook || packet instanceof S12PacketEntityVelocity || packet instanceof S27PacketExplosion)
+                && (m = any("Stasis")) != null && !m.onReceivePacketAlways(packet, handler)) {
+            return;
+        }
         if (packet instanceof S08PacketPlayerPosLook && (m = any("NoRotate")) != null && !m.onReceivePacketAlways(packet, handler)) {
             return;
         }
@@ -696,7 +701,6 @@ public final class Hooks {
         } else if (packet instanceof S12PacketEntityVelocity) {
             S12PacketEntityVelocity p = (S12PacketEntityVelocity) packet;
             if (mc.thePlayer != null && p.getEntityID() == mc.thePlayer.getEntityId()) {
-                if ((m = any("Stasis")) != null) m.onVelocityAlways();
                 if (cancelsKnockback()) {
                     return;
                 }
