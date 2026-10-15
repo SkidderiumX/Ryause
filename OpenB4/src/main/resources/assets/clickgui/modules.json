@@ -7863,6 +7863,11 @@
     "t": "button",
     "name": "View documentation",
     "value": false
+   },
+   {
+    "t": "toggle",
+    "name": "Allow unsafe scripts",
+    "value": false
    }
   ]
  },

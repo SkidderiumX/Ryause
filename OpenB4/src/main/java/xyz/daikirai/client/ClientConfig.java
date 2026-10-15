@@ -31,6 +31,7 @@ public final class ClientConfig {
             FileWriter w = new FileWriter(file, false);
             write(w, "default_profile", defaultProfile == null ? "" : defaultProfile);
             write(w, "save_categories", GuiModule.saveCategoryPositions.isToggled());
+            write(w, "allow_unsafe_scripts", xyz.daikirai.module.ScriptManagerModule.allowUnsafe != null && xyz.daikirai.module.ScriptManagerModule.allowUnsafe.isToggled());
             for (CategoryComponent c : ClickGui.categories) {
                 write(w, "category-" + c.categoryName.name(), c.getX() + "," + c.getY());
             }
@@ -57,6 +58,10 @@ public final class ClientConfig {
                     String key = kv[0], value = kv[1];
                     if (key.equals("default_profile")) {
                         defaultProfile = value;
+                    } else if (key.equals("allow_unsafe_scripts")) {
+                        if (xyz.daikirai.module.ScriptManagerModule.allowUnsafe != null) {
+                            xyz.daikirai.module.ScriptManagerModule.allowUnsafe.set(value.equals("true"));
+                        }
                     } else if (key.equals("save_categories")) {
                         GuiModule.saveCategoryPositions.setEnabled(value.equals("true"));
                         GuiModule.saveCategoryPositions.updateLabel();

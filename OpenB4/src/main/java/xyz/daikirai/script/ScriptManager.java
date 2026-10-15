@@ -195,7 +195,9 @@ public final class ScriptManager {
             return null;
         }
         String source = stringBuilder.toString();
-        if (!ScriptText.isSafe(source, encrypted)) {
+        // u20+ addition, not in the dump: "Allow unsafe scripts" skips R182's blocklist check (ScriptText.isSafe).
+        boolean allowUnsafe = xyz.daikirai.module.ScriptManagerModule.allowUnsafe != null && xyz.daikirai.module.ScriptManagerModule.allowUnsafe.isToggled();
+        if (!allowUnsafe && !ScriptText.isSafe(source, encrypted)) {
             Chat.print("&7Script &b" + name + "&7 blocked, &cunsafe code&7 detected!");
             return null;
         }

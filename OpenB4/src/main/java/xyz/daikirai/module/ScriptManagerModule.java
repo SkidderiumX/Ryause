@@ -13,7 +13,7 @@ import java.io.File;
 public class ScriptManagerModule extends Module {
     public long lastLoad;
     public long cooldown = 1000L;
-    public static ButtonSetting loadScripts, openFolder, viewDocs;
+    public static ButtonSetting loadScripts, openFolder, viewDocs, allowUnsafe;
 
     public ScriptManagerModule(Category category, int key) {
         super(ScriptManager.MANAGER_NAME, category, key);
@@ -24,6 +24,7 @@ public class ScriptManagerModule extends Module {
         loadScripts = (ButtonSetting) ModuleManager.setting(this, "Load scripts");
         openFolder = (ButtonSetting) ModuleManager.setting(this, "Open folder");
         viewDocs = (ButtonSetting) ModuleManager.setting(this, "View documentation");
+        allowUnsafe = (ButtonSetting) ModuleManager.setting(this, "Allow unsafe scripts");
     }
 
     @Override
@@ -60,6 +61,9 @@ public class ScriptManagerModule extends Module {
                 file.mkdirs();
                 Chat.print("&cError locating scripts folder, recreated.");
             }
+        } else if (b == allowUnsafe) {
+            // u20+ addition: kept in keystrokes/config.txt, since profiles skip the script manager.
+            xyz.daikirai.client.ClientConfig.save();
         } else if (b == viewDocs) {
             Chat.print("&cError retrieving API docs!");
         }
