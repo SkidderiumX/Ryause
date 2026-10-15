@@ -2959,7 +2959,7 @@
   "name": "AutoSwap",
   "category": "player",
   "enabled": false,
-  "noToggle": true,
+  "noToggle": false,
   "hidden": false,
   "key": 0,
   "lite": true,

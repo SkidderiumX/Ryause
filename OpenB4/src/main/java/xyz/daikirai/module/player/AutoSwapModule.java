@@ -30,6 +30,36 @@ public class AutoSwapModule extends Module {
         swapToGreater = (ButtonSetting) ModuleManager.setting(this, "Swap to greater stack");
     }
 
+    private boolean lastHeldBlocks;
+    private int lastSlot = -1;
+
+    /**
+     * u20+ change, not in the dump: the original R563 is noToggle and only runs from
+     * Scaffold "Auto swap" / FastPlace "Auto swap blocks" (R563.m3261 callers). Enabled on
+     * its own it swaps while placing by hand, using FastPlace's trigger (same slot, held
+     * blocks last tick, stack at or below "Switch at").
+     */
+    @Override
+    public void onPreUpdate() {
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.thePlayer == null || mc.currentScreen != null) {
+            return;
+        }
+        Module scaffold = ModuleManager.get("Scaffold");
+        Module fastPlace = ModuleManager.get("FastPlace");
+        boolean handled = scaffold != null && scaffold.isEnabled()
+                || fastPlace != null && fastPlace.isEnabled() && FastPlaceModule.autoSwapBlocks.enabled;
+        int slot = mc.thePlayer.inventory.currentItem;
+        boolean blocks = PlayerUtils.holdingScaffoldBlock();
+        if (!handled && mc.gameSettings.keyBindUseItem.isKeyDown() && lastHeldBlocks && slot == lastSlot
+                && (!blocks || (double) mc.thePlayer.getHeldItem().stackSize <= switchAt.getInput())) {
+            swap(SwapSlot.FastPlace);
+            blocks = PlayerUtils.holdingScaffoldBlock();
+        }
+        lastSlot = mc.thePlayer.inventory.currentItem;
+        lastHeldBlocks = blocks;
+    }
+
     public static void swap(SwapSlot origin) {
         Minecraft mc = Minecraft.getMinecraft();
         swapped = false;
