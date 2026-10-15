@@ -188,6 +188,9 @@ public class Script {
             arrayList.add("-d");
             arrayList.add(ScriptManager.TEMP_PATH);
             arrayList.add("-XDuseUnsharedTable");
+            // u20+ addition: the embedded Mixin jar registers an annotation processor that javac would run on every
+            // script, and its notes ("ObfuscationServiceMCP supports type ...") were reported as load errors.
+            arrayList.add("-proc:none");
             boolean deobf = (Boolean) Launch.blackboard.get("fml.deobfuscatedEnvironment");
             if (!deobf) {
                 arrayList.add("-classpath");
@@ -269,6 +272,9 @@ public class Script {
 
         @Override
         public void report(Diagnostic<? extends JavaFileObject> diagnostic) {
+            if (diagnostic.getKind() == Diagnostic.Kind.NOTE) {
+                return;
+            }
             String string2 = diagnostic.getMessage(null);
             if (string2.equals("unchecked or unsafe operations")) {
                 return;
