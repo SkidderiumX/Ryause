@@ -195,6 +195,7 @@ public final class ScriptManager {
             return null;
         }
         String source = stringBuilder.toString();
+        name = declaredName(name, source);
         // u20+ addition, not in the dump: "Allow unsafe scripts" skips R182's blocklist check (ScriptText.isSafe).
         boolean allowUnsafe = xyz.daikirai.module.ScriptManagerModule.allowUnsafe != null && xyz.daikirai.module.ScriptManagerModule.allowUnsafe.isToggled();
         if (!allowUnsafe && !ScriptText.isSafe(source, encrypted)) {
@@ -242,6 +243,30 @@ public final class ScriptManager {
         return script;
     }
 
+    /** u20+ addition: file base names of the current load pass, and declared names already taken in it. */
+    private static final HashSet<String> passFileNames = new HashSet<String>(), passClaimed = new HashSet<String>();
+    private static final java.util.regex.Pattern DECLARED_NAME =
+            java.util.regex.Pattern.compile("\\bString\\s+scriptName\\s*=\\s*\"([^\"\\\\]+)\"\\s*;");
+
+    /**
+     * u20+ addition, not in the dump: a script that declares {@code String scriptName = "X";} uses X as its module name,
+     * so a renamed file still finds its own settings through modules.getSlider/getButton(scriptName, ...). The file name
+     * stays in use when X is invalid, is another script file's own name, or was already claimed this pass.
+     */
+    private static String declaredName(String fileName, String source) {
+        java.util.regex.Matcher m = DECLARED_NAME.matcher(ScriptText.stripComments(source));
+        String name = fileName;
+        if (m.find()) {
+            String declared = m.group(1);
+            if (!declared.equals(fileName) && !passFileNames.contains(declared) && !passClaimed.contains(declared)
+                    && isValidName(declared)) {
+                name = declared;
+            }
+        }
+        passClaimed.add(name);
+        return name;
+    }
+
     public static void reload() {
         removedCount = 0;
         loadedCount = 0;
@@ -280,6 +305,13 @@ public final class ScriptManager {
             }
             HashSet<String> seen = new HashSet<String>();
             ArrayList<Script> loaded = new ArrayList<Script>();
+            passFileNames.clear();
+            passClaimed.clear();
+            for (File file : files) {
+                if (file.isFile() && file.getName().endsWith(EXTENSION)) {
+                    passFileNames.add(file.getName().replace(EXTENSION, ""));
+                }
+            }
             for (File file : files) {
                 if (file.isFile() && file.canRead() && !seen.contains(file.getName())) {
                     seen.add(file.getName());

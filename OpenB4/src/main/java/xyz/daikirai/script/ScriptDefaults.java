@@ -1373,7 +1373,7 @@ implements Defaults {
         private static int f116930 = Integer.reverse(-1662093368);
 
         public static double getSliderMin(String string, String string2) {
-            return (Double)modules.getSliderData(string, string2, 2, 0);
+            return (Double)modules.getSliderData(string, string2, 2, 0.0);
         }
 
         public static Entity getBacktrackTarget() {
@@ -1385,7 +1385,7 @@ implements Defaults {
         }
 
         public static double getSliderMax(String string, String string2) {
-            return (Double)modules.getSliderData(string, string2, 3, 0);
+            return (Double)modules.getSliderData(string, string2, 3, 0.0);
         }
 
         public static boolean isEnabled(String string) {
@@ -1409,7 +1409,7 @@ implements Defaults {
         }
 
         public static double getSliderInterval(String string, String string2) {
-            return (Double)modules.getSliderData(string, string2, 4, 0);
+            return (Double)modules.getSliderData(string, string2, 4, 0.0);
         }
 
         public static Map<String, Object> getSettings(String string) {
@@ -1448,7 +1448,7 @@ implements Defaults {
         }
 
         public static double getSlider(String string, String string2) {
-            return (Double)modules.getSliderData(string, string2, 0, 0);
+            return (Double)modules.getSliderData(string, string2, 0, 0.0);
         }
 
         public static void enable(String string) {
