@@ -90,9 +90,29 @@ public class SafeWalkModule extends Module {
             if (scaffold() != null) scaffold().disable();
         }
         sneaking = false;
+        if (onlyWhileSneaking.enabled) {
+            pressSneak(physicalSneak());
+        }
     }
 
     public static boolean conditions(boolean needGround) {
+        return conditions(needGround, false);
+    }
+
+    private static boolean physicalSneak() {
+        return GameSettings.isKeyDown(mc().gameSettings.keyBindSneak);
+    }
+
+    /**
+     * u20+ change, not in the dump: with "Only while sneaking" on, R367.m1139 drove the sneak key every tick, so holding
+     * shift never sneaked anywhere. The sneak key is now only taken over while every other condition holds (pitch, blocks
+     * only, right click, forward); otherwise the real key state is passed through.
+     */
+    private static boolean takesOverSneak() {
+        return physicalSneak() && conditions(false, true);
+    }
+
+    private static boolean conditions(boolean needGround, boolean ignoreSneak) {
         if (needGround && !mc().thePlayer.onGround) {
             return false;
         }
@@ -102,7 +122,7 @@ public class SafeWalkModule extends Module {
         if (onlyRightClicking.enabled && !Mouse.isButtonDown(1)) {
             return false;
         }
-        if (onlyWhileSneaking.enabled && !GameSettings.isKeyDown(mc().gameSettings.keyBindSneak)) {
+        if (!ignoreSneak && onlyWhileSneaking.enabled && !physicalSneak()) {
             return false;
         }
         if (disableOnForward.enabled && GameSettings.isKeyDown(mc().gameSettings.keyBindForward)) {
@@ -209,7 +229,10 @@ public class SafeWalkModule extends Module {
         if (!Chat.inWorld()) {
             return;
         }
-        if (onlyWhileSneaking.enabled) {
+        if (onlyWhileSneaking.enabled && !takesOverSneak()) {
+            sneaking = false;
+            pressSneak(physicalSneak());
+        } else if (onlyWhileSneaking.enabled) {
             if (mode == Mode.SNEAK_KEYBIND || mode == Mode.SCAFFOLD) {
                 pressSneak(sneaking);
             } else {
