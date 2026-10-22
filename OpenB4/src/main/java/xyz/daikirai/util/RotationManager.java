@@ -41,6 +41,7 @@ public final class RotationManager {
 
     private static final Provider[] PROVIDERS = {
             new Provider("Freecam", false, RotationSource.FREECAM),
+            new Provider("Jump Reset", true, RotationSource.JUMPRESET), // u20+ "Aim jump"
             new Provider("AutoBlockin", true, RotationSource.AUTOBLOCKIN),
             new Provider("Scaffold", false, RotationSource.SCAFFOLD),
             new Provider("Long Jump", false, RotationSource.LONGJUMP),
@@ -89,12 +90,21 @@ public final class RotationManager {
     }
 
     public static boolean movementFix() {
-        return Hooks.movementFixSetting() && rotating && source != null && source.movementFix;
+        return Hooks.movementFixSetting() && rotating && source != null && source.movementFix && source != RotationSource.JUMPRESET;
+    }
+
+    /**
+     * u20+ (Jump Reset "Aim jump"): for that one tick the sent yaw is also the movement and jump yaw, whatever the
+     * movement fix setting, and the input is not remapped, so W stays forward, sprint holds and Grim simulates the
+     * same yaw the client moved with.
+     */
+    private static boolean aimedJump() {
+        return rotating && source == RotationSource.JUMPRESET;
     }
 
     public static float movementYaw() {
         Float f = null;
-        if (movementFix()) {
+        if (movementFix() || aimedJump()) {
             f = serverYaw;
         } else {
             Module targetStrafe = ModuleManager.enabled("TargetStrafe");

@@ -270,7 +270,8 @@ public final class Hooks {
         if ((m = any("Stasis")) != null) m.onPostPlayerInputAlways();
         if ((m = any("Scaffold")) != null) m.onPostPlayerInputAlways();
         if ((m = any("Tower")) != null) m.onPostPlayerInputAlways();
-        String[] order = {"Freecam", "KillAura", "Bhop", "NoSlow", "SafeWalk", "Long Jump", "Dolphin", "AntiAFK", "InvMove",
+        // u20+: Jump Reset "Aim jump" sets W ahead of KillAura, so the AutoBlock slowdown (NoSlowModule.slowdown) applies to it.
+        String[] order = {"Freecam", "Jump Reset", "KillAura", "Bhop", "NoSlow", "SafeWalk", "Long Jump", "Dolphin", "AntiAFK", "InvMove",
                 "TargetStrafe"};
         for (String name : order) {
             if ((m = on(name)) != null) m.onPostPlayerInput();
@@ -688,6 +689,14 @@ public final class Hooks {
             if ((m = on(name)) != null && !m.onReceivePacket(packet, handler)) {
                 return;
             }
+        }
+        // u20+ addition: Jump Reset "Hard reset" holds inbound packets (OpenJade QueuedPacketDispatcher).
+        if (on("Jump Reset") != null && !xyz.daikirai.module.combat.JumpResetModule.hardResetReceive(packet, handler)) {
+            return;
+        }
+        // u20+ addition: KillAura LAG_NEW (Interact A, 100% lag) holds inbound transactions past its post-movement block (Grim Post).
+        if (on("KillAura") != null && !xyz.daikirai.module.combat.KillAuraModule.lagNewReceive(packet, handler)) {
+            return;
         }
         if (packet instanceof S08PacketPlayerPosLook && mc.thePlayer != null) {
             PacketUtils.lastPosLook = System.currentTimeMillis();

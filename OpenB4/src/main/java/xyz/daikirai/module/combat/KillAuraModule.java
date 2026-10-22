@@ -63,6 +63,12 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 import org.lwjgl.input.Mouse;
 
+import net.minecraft.network.play.INetHandlerPlayClient;
+import net.minecraft.network.play.server.S01PacketJoinGame;
+import net.minecraft.network.play.server.S07PacketRespawn;
+import net.minecraft.network.play.server.S08PacketPlayerPosLook;
+import net.minecraft.network.play.server.S32PacketConfirmTransaction;
+import xyz.daikirai.hook.Hooks;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -78,7 +84,11 @@ public class KillAuraModule extends Module {
             blockRangeSetting, rotationSetting, rotationSmoothing, sortSetting, switchDelay, targets;
     public static ButtonSetting aimInvis, attackFireballs, attackMobs, attackPlayers, disableInInventory, disableWhileBlocking, disableWhileMining,
             disableSprintMidair, hitThroughBlocks, ignoreTeammates, manualBlock, prioritizeEnemies, requireMouseDown, silentSwingWhileBlocking,
-            weaponOnly;
+            weaponOnly, unblockOnKnockback;
+    public static SliderSetting unblockTicks;
+    /** "Unblock on knockback": set on the netty thread by onKnockback, taken in onPreUpdate. */
+    private static volatile boolean knockbackArrived;
+    private static int unblockLeft;
 
     public enum AutoBlock {
         Manual(false, false, false), Vanilla(false, false, false), Damage(false, false, false), Fake(false, false, false),
@@ -168,6 +178,18 @@ public class KillAuraModule extends Module {
     private static final HashMap<UUID, Long> switchTimes = new HashMap<UUID, Long>();
     private static final List<Packet<?>> held = Collections.synchronizedList(new ArrayList<Packet<?>>());
     private static boolean lagging;
+    /** "LAG_NEW" (Interact A at 100% lag): Expo AutoBlock state, see lagNew(). */
+    private static volatile boolean lagNewHolding;
+    private static boolean lagNewActive, lagNewNoAttack, lagNewActed, lagNewHit, lagNewAttackTick, lagNewTimeout;
+    private static int lagNewStage;
+    private static long lagNewFlushedAt;
+    /** LAG_NEW leaving on the tick after its block: let go after the movement packet, release next tick. */
+    private static boolean lagNewExitPending, lagNewFinishExit;
+    /** LAG_NEW inbound hold (Grim Post), see lagNewReceive. */
+    private static final List<Packet<?>> lagNewInbound = new ArrayList<Packet<?>>();
+    private static volatile boolean lagNewInboundHold;
+    private static INetHandler lagNewInboundHandler;
+    private static long lagNewInboundSince;
     private static int lagAccumulator;
     private static double dualAccumulator;
     private static int dualSwaps;
@@ -230,6 +252,10 @@ public class KillAuraModule extends Module {
         requireMouseDown = (ButtonSetting) ModuleManager.setting(this, "Require mouse down");
         silentSwingWhileBlocking = (ButtonSetting) ModuleManager.setting(this, "Silent swing while blocking");
         weaponOnly = (ButtonSetting) ModuleManager.setting(this, "Weapon only");
+        unblockOnKnockback = (ButtonSetting) ModuleManager.setting(this, "Unblock on knockback");
+        unblockTicks = (SliderSetting) ModuleManager.setting(this, "Unblock ticks");
+        unblockOnKnockback.visibility = () -> autoBlock != AutoBlock.Manual;
+        unblockTicks.visibility = () -> autoBlock != AutoBlock.Manual && unblockOnKnockback.enabled;
         guiUpdate();
     }
 
@@ -548,6 +574,8 @@ public class KillAuraModule extends Module {
     @SubscribeEvent
     public void onJoin(EntityJoinWorldEvent e) {
         if (e.entity == mc().thePlayer) {
+            // LAG_NEW: drop what was held for the old connection before setTarget(null) would flush it.
+            lagNewReset();
             setTarget(null);
             held.clear();
         }
@@ -566,6 +594,9 @@ public class KillAuraModule extends Module {
     @Override
     public void onPostMotion() {
         Minecraft mc = mc();
+        if (lagNewActive) {
+            lagNewPost();
+        }
         if (target != null) {
             if (inSwingRange && rotation == Rotation.Lock_view) {
                 RotationUtils.setRotation(RotationManager.serverYaw, RotationManager.serverPitch);
@@ -636,8 +667,11 @@ public class KillAuraModule extends Module {
 
     public static void setTarget(Entity entity) {
         if (entity == null) {
+            lagNewExit();
             switchTimes.clear();
-            if (target != null) {
+            if (lagNewActive) {
+                // LAG_NEW blocked after the last movement packet: it lets go in lagNewPost, the block stays until then.
+            } else if (target != null) {
                 if (autoBlock.packet && (!manualBlock.isToggled() || blockState != -1)) {
                     releaseFlow(blockState);
                 }
@@ -645,9 +679,11 @@ public class KillAuraModule extends Module {
             } else if (autoBlock != AutoBlock.Manual && !Mouse.isButtonDown(1)) {
                 setBlocking(false, false);
             }
-            serverBlocking = false;
+            if (!lagNewActive) {
+                serverBlocking = false;
+            }
             inSwingRange = false;
-            if (blockState != -1) {
+            if (blockState != -1 && !lagNewActive) {
                 blockState = -1;
             }
             if (!hitThroughBlocks.isToggled()) {
@@ -674,6 +710,7 @@ public class KillAuraModule extends Module {
 
     @Override
     public void onDisable() {
+        lagNewStop();
         if (autoBlock != AutoBlock.Manual && !rightDown() && mc().thePlayer.isUsingItem()) {
             setBlocking(false, false);
         }
@@ -815,6 +852,13 @@ public class KillAuraModule extends Module {
             } else if (!(autoBlock != AutoBlock.Manual || interacting || p.getAction() != C02PacketUseEntity.Action.INTERACT_AT && p.getAction() != C02PacketUseEntity.Action.INTERACT)) {
                 return false;
             }
+        }
+        if (lagNewHolding && !mc.isSingleplayer()) {
+            // LAG_NEW: PacketManager.onSendPacket holds every outbound packet until the cycle's flush.
+            synchronized (held) {
+                held.add(packet);
+            }
+            return false;
         }
         if (!(!autoBlock.lags || mc.isSingleplayer() || !lagging && held.isEmpty() || blockState != -1 && packet instanceof C08PacketPlayerBlockPlacement && packet != PacketUtils.sending)) {
             switch (blockState) {
@@ -1075,6 +1119,18 @@ public class KillAuraModule extends Module {
     @Override
     public void onPreUpdate() {
         Minecraft mc = mc();
+        if (knockbackArrived) {
+            knockbackArrived = false;
+            unblockLeft = unblockOnKnockback.isToggled() ? (int) unblockTicks.getInput() : 0;
+        } else if (unblockLeft > 0) {
+            --unblockLeft;
+        }
+        if (lagNewFinishExit) {
+            lagNewFinishExit = false;
+            lagNewStop();
+        } else if (lagNewActive && !lagNew()) {
+            lagNewExit();
+        }
         if (interactRotations != null) {
             updateRotations();
             return;
@@ -1105,8 +1161,13 @@ public class KillAuraModule extends Module {
                 }
             }
             if (autoBlock.packet) {
-                if (!blockAllowed() || !PlayerUtils.holdingSword()) {
-                    if (blockState != -1) {
+                if (lagNewExitPending) {
+                    canAttack = false;
+                } else if (!blockAllowed() || !PlayerUtils.holdingSword()) {
+                    if (lagNewActive) {
+                        lagNewExit();
+                        canAttack = false;
+                    } else if (blockState != -1) {
                         releaseFlow(blockState);
                         blockState = -1;
                         fakeBlocking = false;
@@ -1117,7 +1178,9 @@ public class KillAuraModule extends Module {
                     if (blockState == 0) {
                         setBlocking(false, false);
                     }
-                    switch (autoBlock) {
+                    if (lagNew()) {
+                        canAttack = lagNewPre(canAttack);
+                    } else switch (autoBlock) {
                         case Swap: {
                             if (slotFree(false)) {
                                 switch (blockState) {
@@ -1325,10 +1388,12 @@ public class KillAuraModule extends Module {
                         attacking = true;
                         PlayerUtils.attack(entity, silent);
                         attacking = false;
+                        lagNewActed = lagNewHit = true;
                         Irc.onKillAuraHit();
                     } else if (swing) {
                         PlayerUtils.swing(silent, false);
                         ClickUtils.onAttackClick();
+                        lagNewActed = true;
                     } else {
                         setDelay(true);
                     }
@@ -1358,6 +1423,288 @@ public class KillAuraModule extends Module {
                 }
             }
         }
+        lagNewAfterAttack();
+    }
+
+    /*
+     * u20+ port: Expo AutoBlock "LAG_NEW" (OpenExpo-main, Expo/module/impl/combat/AutoBlock.java), used in place of
+     * Interact A when "AutoBlock lag" is at 100%. Expo runs a stage machine (its static k):
+     * - pre (onPreMouseInput -> F, C): hold every outbound packet (PacketManager.M(true)); on stage 0 release the
+     *   block (K: C07 RELEASE_USE_ITEM, only when nothing was attacked/used/dug this tick), then step by "APS-mode";
+     *   attack on stages 2/5/6 unless the step set OutgoingPacketState.P (no attack this tick); after an attack or
+     *   swing, or once 329 ms passed since the last flush (field mb, DES-decrypted), stage 7.
+     * - post (onPostUpdate, end of EntityPlayerSP.onUpdate, after the C03): stage 7 blocks (Q: C02 INTERACT_AT +
+     *   INTERACT when the target was hit this tick, then C08) -> 10; next tick 10 -> 11, and its post flushes the
+     *   held packets (PacketManager.j) and holds again -> 0.
+     * So the block always goes out after the movement packet, and the server gets each cycle in one burst.
+     * Only the C07 path is ported: Expo swaps slots instead when its own NoSlow (Vanilla sword) is on (s()), and
+     * this client has no such setting. Expo's "APS-mode" is picked from "AutoBlock APS" (nearest of 3/5/7/10;
+     * Expo's 14APS runs the 10APS steps on this path).
+     */
+    private static boolean lagNew() {
+        return autoBlock == AutoBlock.Interact_A && autoBlockLag.getInput() >= 100.0;
+    }
+
+    /** AutoBlock.apsMode, from "AutoBlock APS". */
+    private static int lagNewAps() {
+        double aps = autoBlockAps.getInput();
+        return aps < 4.0 ? 3 : aps < 6.0 ? 5 : aps < 8.5 ? 7 : 10;
+    }
+
+    /** AutoBlock.onPreMouseInput (LAG_NEW): F, C and the attack gate. Returns whether this tick may attack. */
+    private static boolean lagNewPre(boolean canAttack) {
+        if (!slotFree(false)) {
+            lagNewExit();
+            if (BedAuraModule.allowKillAura.isToggled()) {
+                canAttack = false;
+            }
+            return canAttack;
+        }
+        long now = System.currentTimeMillis();
+        if (!lagNewActive) {
+            // first tick active (!f$r2()): k = blocking ? 0 : 1
+            lagNewActive = true;
+            lagNewStage = serverBlocking ? 0 : 1;
+            lagNewFlushedAt = now;
+            blockState = 0;
+        }
+        lagNewNoAttack = false;
+        lagNewActed = false;
+        lagNewHit = false;
+        lagNewAttackTick = false;
+        // F
+        if (lagNewStage == 0 || lagNewStage == 3 || lagNewStage == 5) {
+            lagNewHolding = true;
+            lagNewStep();
+        } else if (lagNewStage == 1 || lagNewStage == 6) {
+            lagNewStage = 2;
+        }
+        lagNewTimeout = now - lagNewFlushedAt >= 329L;
+        if (lagNewStage == 10) {
+            lagNewStage = 11;
+        } else if (lagNewTimeout || lagNewStage == 2 || lagNewStage == 5 || lagNewStage == 6) {
+            lagNewAttackTick = true;
+            if (!lagNewNoAttack) {
+                attackQueued = true;
+                return canAttack;
+            }
+        }
+        return false;
+    }
+
+    /** AutoBlock.C, the C07 path (s() false). */
+    private static void lagNewStep() {
+        if (lagNewStage == 0) {
+            // K: unblock unless an attack, use or dig already went out this tick
+            if (!serverBlocking) {
+                lagNewStage = 3;
+            } else if (PacketUtils.noAttackPlaceOrDig()) {
+                setBlocking(false, true);
+                fakeBlocking = true;
+                lagNewStage = 3;
+            }
+            return;
+        }
+        switch (lagNewAps()) {
+            case 3:
+                if (lagNewStage == 3) {
+                    lagNewNoAttack = true;
+                    lagNewStage = 5;
+                } else if (lagNewStage == 5) {
+                    lagNewNoAttack = true;
+                    lagNewStage = 1;
+                }
+                break;
+            case 5:
+                if (lagNewStage == 3) {
+                    lagNewNoAttack = true;
+                    lagNewStage = 1;
+                }
+                break;
+            case 7:
+                if (lagNewStage == 3) {
+                    lagNewStage = 2;
+                }
+                break;
+            default:
+                lagNewStage = lagNewStage == 3 ? 6 : 1;
+        }
+    }
+
+    /** AutoBlock.onPreMouseInput (LAG_NEW) after the attack: k = 7 unless on 5/6. */
+    private static void lagNewAfterAttack() {
+        if (!lagNewActive || !lagNewAttackTick) {
+            return;
+        }
+        // AutoBlock.M: a swing already sent this tick counts as the attack.
+        if (PacketUtils.sentSwing) {
+            lagNewActed = true;
+            if (PacketUtils.sentAttack) {
+                lagNewHit = true;
+            }
+        }
+        if (lagNewStage != 5 && lagNewStage != 6 && (lagNewActed || lagNewTimeout)) {
+            lagNewStage = 7;
+        }
+    }
+
+    /** AutoBlock.onPostUpdate (LAG_NEW): case 7 (Q) and case 11 (o$r2 + W). */
+    private static void lagNewPost() {
+        Minecraft mc = mc();
+        if (lagNewExitPending) {
+            // after this tick's movement packet: send what was held, let the transactions through, release next tick
+            lagNewExitPending = false;
+            release(false);
+            lagNewHolding = false;
+            lagNewReleaseInbound();
+            lagNewStage = 0;
+            lagNewFinishExit = true;
+            return;
+        }
+        if (lagNewStage == 7) {
+            Entity entity = target != null ? target.entity : null;
+            if (lagNewHit && entity != null) {
+                float[] rot = aim();
+                MovingObjectPosition hit = BotCheck.rayTrace(entity, 8.0, mc.thePlayer.posX, mc.thePlayer.posY, mc.thePlayer.posZ, rot[0], rot[1]);
+                if (hit != null) {
+                    Vec3 vec3 = new Vec3(hit.hitVec.xCoord - entity.posX, hit.hitVec.yCoord - entity.posY, hit.hitVec.zCoord - entity.posZ);
+                    interacting = true;
+                    PacketUtils.send(new C02PacketUseEntity(entity, vec3));
+                    PacketUtils.send(new C02PacketUseEntity(entity, C02PacketUseEntity.Action.INTERACT));
+                    interacting = false;
+                }
+            }
+            setBlocking(true, true);
+            lagNewStage = 10;
+            lagNewInboundSince = System.currentTimeMillis();
+            lagNewInboundHold = true;
+        } else if (lagNewStage == 11) {
+            release(false);
+            lagNewFlushedAt = System.currentTimeMillis();
+            lagNewHolding = true;
+            lagNewStage = 0;
+            lagNewReleaseInbound();
+        } else if (lagNewInboundHold && System.currentTimeMillis() - lagNewInboundSince >= 329L) {
+            lagNewReleaseInbound();
+        }
+    }
+
+    /*
+     * u20+ change, not in Expo: leaving LAG_NEW. On the tick after its block (stages 10/11) the C08 went out after
+     * the last movement packet, so a release now would be in the same Grim tick (PacketOrderI) and the held
+     * transactions would go out before the next movement packet (Post). Then the block stays (and the slowdown with
+     * it) until that tick's movement packet is out (lagNewPost), and the release goes out at the next tick's start.
+     */
+    private static void lagNewExit() {
+        if (!lagNewActive || lagNewExitPending) {
+            return;
+        }
+        if (lagNewStage == 10 || lagNewStage == 11) {
+            lagNewExitPending = true;
+            return;
+        }
+        lagNewStop();
+    }
+
+    /** AutoBlock.n/B: flush and stop holding, then release the block. */
+    private static void lagNewStop() {
+        if (!lagNewActive) {
+            return;
+        }
+        lagNewActive = false;
+        lagNewHolding = false;
+        lagNewStage = 0;
+        lagNewExitPending = lagNewFinishExit = false;
+        release(false);
+        if (serverBlocking && mc().thePlayer != null) {
+            setBlocking(false, true);
+        }
+        serverBlocking = fakeBlocking = false;
+        blockState = -1;
+        lagNewReleaseInbound();
+    }
+
+    /*
+     * u20+ change, not in Expo: Grim "Post" flags an action packet after the movement packet when a transaction
+     * reply (C0F) follows before the next movement packet, and vanilla answers transactions between ticks. LAG_NEW
+     * blocks after the movement packet, so from its block until the next movement packet is out, inbound packets
+     * are held from the first S32 on (order kept) and replayed after that tick's flush. The block still lands after
+     * the movement packet; only the transaction replies move behind the next one. S08, join and respawn end the
+     * hold first; a hold older than 329 ms is let go.
+     */
+    public static boolean lagNewReceive(Packet<?> packet, INetHandler handler) {
+        if (!(handler instanceof INetHandlerPlayClient) || mc().isSingleplayer()) {
+            return true;
+        }
+        List<Packet<?>> flush = null;
+        synchronized (lagNewInbound) {
+            if (!lagNewInboundHold) {
+                return true;
+            }
+            if (packet instanceof S08PacketPlayerPosLook || packet instanceof S01PacketJoinGame || packet instanceof S07PacketRespawn) {
+                flush = lagNewDrainInbound();
+            } else if (!lagNewInbound.isEmpty() || packet instanceof S32PacketConfirmTransaction) {
+                lagNewInbound.add(packet);
+                lagNewInboundHandler = handler;
+                return false;
+            } else {
+                return true;
+            }
+        }
+        lagNewReplay(flush, handler);
+        return true;
+    }
+
+    private static void lagNewReleaseInbound() {
+        List<Packet<?>> list;
+        INetHandler handler;
+        synchronized (lagNewInbound) {
+            handler = lagNewInboundHandler;
+            list = lagNewDrainInbound();
+        }
+        if (mc().thePlayer != null) {
+            lagNewReplay(list, handler);
+        }
+    }
+
+    private static List<Packet<?>> lagNewDrainInbound() {
+        lagNewInboundHold = false;
+        lagNewInboundHandler = null;
+        if (lagNewInbound.isEmpty()) {
+            return null;
+        }
+        List<Packet<?>> list = new ArrayList<Packet<?>>(lagNewInbound);
+        lagNewInbound.clear();
+        return list;
+    }
+
+    @SuppressWarnings({"rawtypes"})
+    private static void lagNewReplay(List<Packet<?>> list, INetHandler handler) {
+        if (list == null || handler == null) {
+            return;
+        }
+        for (Packet packet : list) {
+            try {
+                PacketUtils.reprocessing = packet;
+                Hooks.onReceive(packet, handler);
+            } catch (Throwable ignored) {
+            } finally {
+                PacketUtils.reprocessing = null;
+            }
+        }
+    }
+
+    private static void lagNewReset() {
+        synchronized (held) {
+            held.clear();
+        }
+        synchronized (lagNewInbound) {
+            lagNewDrainInbound();
+        }
+        lagNewActive = false;
+        lagNewHolding = false;
+        lagNewStage = 0;
+        lagNewExitPending = lagNewFinishExit = false;
     }
 
     private static boolean rightDown() {
@@ -1375,6 +1722,7 @@ public class KillAuraModule extends Module {
 
     @Override
     public void onKnockback(S12PacketEntityVelocity packet, long now) {
+        knockbackArrived = true;
         if (!attackOnDamage.isAtMin() && now - PacketUtils.lastVelocity > 250L) {
             forceAttacks((int) attackOnDamage.getInput());
         }
@@ -1441,8 +1789,16 @@ public class KillAuraModule extends Module {
         }
     }
 
+    /*
+     * u20+ addition, "Unblock on knockback": AutoBlock stops for "Unblock ticks" ticks from the tick your knockback
+     * lands, through the same release path as letting go of right click, so you stay sprinting and Jump Reset can
+     * act on every tick of it (blocked or right after a release they cannot: MultiActionsE,
+     * PacketOrderI; a client-side block also drops sprint). It costs next to no damage: knockback only comes with a
+     * fresh hit, which starts 10 ticks of hurt resistance in which a hit only deals what it exceeds the last one by
+     * (EntityLivingBase.attackEntityFrom, lastDamage is taken before the block halving in EntityPlayer.damageEntity).
+     */
     public static boolean blockAllowed() {
-        return !manualBlock.isToggled() || rightDown();
+        return (!manualBlock.isToggled() || rightDown()) && unblockLeft == 0;
     }
 
     @Override

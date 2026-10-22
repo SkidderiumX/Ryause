@@ -993,6 +993,52 @@
     "t": "toggle",
     "name": "Only while targeting",
     "value": false
+   },
+   {
+    "t": "toggle",
+    "name": "Hard reset",
+    "value": false
+   },
+   {
+    "t": "slider",
+    "name": "Hard reset max delay",
+    "prefix": "",
+    "suffix": "ms",
+    "value": 200.0,
+    "min": 50.0,
+    "max": 1000.0,
+    "step": 10.0,
+    "options": null,
+    "labels": null
+   },
+   {
+    "t": "slider",
+    "name": "Hard reset distance",
+    "prefix": "",
+    "suffix": "",
+    "value": 5.3,
+    "min": 3.0,
+    "max": 12.0,
+    "step": 0.1,
+    "options": null,
+    "labels": null
+   },
+   {
+    "t": "toggle",
+    "name": "Aim jump",
+    "value": true
+   },
+   {
+    "t": "slider",
+    "name": "Aim jump ticks",
+    "prefix": "",
+    "suffix": "",
+    "value": 6.0,
+    "min": 1.0,
+    "max": 12.0,
+    "step": 1.0,
+    "options": null,
+    "labels": null
    }
   ]
  },
@@ -1276,6 +1322,23 @@
     "t": "toggle",
     "name": "Weapon only",
     "value": true
+   },
+   {
+    "t": "toggle",
+    "name": "Unblock on knockback",
+    "value": false
+   },
+   {
+    "t": "slider",
+    "name": "Unblock ticks",
+    "prefix": "",
+    "suffix": "",
+    "value": 2.0,
+    "min": 1.0,
+    "max": 5.0,
+    "step": 1.0,
+    "options": null,
+    "labels": null
    }
   ]
  },
