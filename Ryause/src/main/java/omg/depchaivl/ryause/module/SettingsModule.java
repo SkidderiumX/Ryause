@@ -9,13 +9,12 @@ import net.minecraft.util.ResourceLocation;
 public class SettingsModule extends Module {
     public enum Cape {
         None(null),
-        Purple("rvn_purple"),
-        Red("rvn_red"),
-        Green("rvn_green"),
-        Yellow("rvn_yellow"),
-        Aqua("rvn_aqua"),
-        Anime("anime"),
-        Jewstein("jewstein");
+        RyausePurple("ryause_purple"),
+        RyauseRed("ryause_red"),
+        RyauseGreen("ryause_green"),
+        RyauseYellow("ryause_yellow"),
+        RyauseAqua("ryause_aqua"),
+        RyauseGlow("ryause_glow");
 
         public final ResourceLocation texture;
 

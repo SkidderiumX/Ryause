@@ -7629,17 +7629,16 @@
     "suffix": "",
     "value": 4.0,
     "min": 0.0,
-    "max": 7.0,
+    "max": 6.0,
     "step": 1.0,
     "options": [
      "None",
-     "Purple",
-     "Red",
-     "Green",
-     "Yellow",
-     "Aqua",
-     "Anime",
-     "Jewstein"
+     "Ryause Purple",
+     "Ryause Red",
+     "Ryause Green",
+     "Ryause Yellow",
+     "Ryause Aqua",
+     "Ryause Glow"
     ],
     "labels": {
      "0.0": "§cNone"
