@@ -25,8 +25,13 @@ public class AccountManager {
   private static final Logger LOGGER = Logger.getLogger(AccountManager.class.getName());
 
   public static final ArrayList<Account> accounts = new ArrayList<>();
+  private static boolean initialized = false;
 
   public static void init() {
+    if (initialized) {
+      return;
+    }
+    initialized = true;
     SSLUtils.getSSLContext();
     Nan0EventRegister.register(MinecraftForge.EVENT_BUS, new Events());
 

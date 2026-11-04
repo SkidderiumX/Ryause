@@ -1,5 +1,6 @@
 package omg.depchaivl.ryause;
 
+import me.ksyz.accountmanager.AccountManager;
 import omg.depchaivl.ryause.client.Chat;
 import omg.depchaivl.ryause.client.ChatCommands;
 import omg.depchaivl.ryause.client.ClientConfig;
@@ -35,6 +36,7 @@ public class ClickGuiMod {
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent e) {
+        AccountManager.init();
         ModuleManager.init();
         omg.depchaivl.ryause.script.ScriptReflection.init();
         omg.depchaivl.ryause.script.ScriptEvents.bind(omg.depchaivl.ryause.script.ScriptDelegated.class);
