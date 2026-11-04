@@ -1,0 +1,8 @@
+[{
+  "modid": "clickgui",
+  "name": "Ryause",
+  "description": "Ryause client.",
+  "version": "${version}",
+  "mcversion": "1.8.9",
+  "authorList": []
+}]
