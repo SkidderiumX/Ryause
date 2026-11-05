@@ -17,6 +17,14 @@
 .\gradlew.bat build
 ```
 
+The installable remapped jar is written to `Ryause-Build\MMDDYY` as
+`Ryause-MMDDYY+n.jar`. The build number starts at `+1` each day and increments for
+each existing jar from that date. The development jar remains under `Ryause/build/libs`.
+
+Run `.\gradlew.bat buildBeta` to create a beta jar under
+`Beta-builds\MMDDYY\Ryause-Beta-MMDDYY+n.jar`. Beta builds use an independent daily
+counter, which is also reflected in the beta jar's mod version.
+
 ## Decrypting Scripts - u20
 
 Raven's protected scripts carry two recovered layers:

@@ -41,7 +41,11 @@ public class Events {
           TextFormatting.translate(
               String.format("&7Username: &3%s&r", SessionManager.get().getUsername()));
       GlStateManager.disableLighting();
-      mc.currentScreen.drawString(mc.fontRendererObj, text, 3, 3, -1);
+      int x = mc.currentScreen.width - mc.fontRendererObj.getStringWidth(text) - 3;
+      if (x < 3) {
+        x = 3;
+      }
+      mc.currentScreen.drawString(mc.fontRendererObj, text, x, 3, -1);
       GlStateManager.enableLighting();
     }
   }
@@ -49,7 +53,16 @@ public class Events {
   @SubscribeEvent
   public void initGuiEvent(InitGuiEvent.Post event) {
     if (event.gui instanceof GuiSelectWorld || event.gui instanceof GuiMultiplayer) {
-      event.buttonList.add(new GuiButton(69, event.gui.width - 106, 6, 100, 20, "Accounts"));
+      boolean hasAccountsButton = false;
+      for (GuiButton button : event.buttonList) {
+        if (button.id == 69) {
+          hasAccountsButton = true;
+          break;
+        }
+      }
+      if (!hasAccountsButton) {
+        event.buttonList.add(new GuiButton(69, 6, 6, 100, 20, "Accounts"));
+      }
     }
 
     if (event.gui instanceof GuiDisconnected) {

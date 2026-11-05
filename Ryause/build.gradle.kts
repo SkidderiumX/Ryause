@@ -1,3 +1,6 @@
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+
 plugins {
     java
     id("gg.essential.loom") version "0.10.0.+"
@@ -38,9 +41,23 @@ dependencies {
     embed(files("libs/mixin-0.7.11-SNAPSHOT.jar"))
 }
 
+val buildDate = LocalDate.now().format(DateTimeFormatter.ofPattern("MMddyy"))
+val isBetaBuild = gradle.startParameter.taskNames.any {
+    it == "buildBeta" || it.endsWith(":buildBeta")
+}
+val outputDirectoryName = if (isBetaBuild) "Beta-builds" else "Ryause-Build"
+val outputPrefix = if (isBetaBuild) "Ryause-Beta-" else "Ryause-"
+val dailyDirectory = projectDir.parentFile.resolve(outputDirectoryName).resolve(buildDate)
+val numberPattern = Regex("^${Regex.escape(outputPrefix)}${buildDate}\\+(\\d+)\\.jar$")
+val latestBuild = dailyDirectory.listFiles()
+    ?.mapNotNull { numberPattern.matchEntire(it.name)?.groupValues?.get(1)?.toIntOrNull() }
+    ?.fold(0) { latest, number -> if (number > latest) number else latest } ?: 0
+val dailyBuildNumber = latestBuild + 1
+val buildVersion = "$buildDate+$dailyBuildNumber"
+
 tasks.processResources {
-    inputs.property("version", project.version)
-    filesMatching("mcmod.info") { expand("version" to project.version) }
+    inputs.property("version", buildVersion)
+    filesMatching("mcmod.info") { expand("version" to buildVersion) }
 }
 tasks.withType<JavaCompile> { options.encoding = "UTF-8" }
 
@@ -58,4 +75,13 @@ tasks.jar {
     )
 }
 
-tasks.named<org.gradle.jvm.tasks.Jar>("remapJar") { archiveFileName.set("Ryause.jar") }
+tasks.named<org.gradle.jvm.tasks.Jar>("remapJar") {
+    archiveFileName.set("$outputPrefix$buildDate+$dailyBuildNumber.jar")
+    destinationDirectory.set(dailyDirectory)
+}
+
+tasks.register("buildBeta") {
+    group = "build"
+    description = "Build the beta jar with its own daily build number."
+    dependsOn("build")
+}
