@@ -60,6 +60,8 @@ public final class ModuleManager {
                     m = commandLine = new CommandLineModule(key);
                 } else if (name.equals("Chat Commands")) {
                     m = chatCommands = new ChatCommandsModule(key);
+                } else if (name.equals("Chat")) {
+                    m = new ChatEmotesModule(key);
                 } else if (name.equals("IRC")) {
                     m = irc = new IrcModule(key);
                 } else if (name.equals("Settings")) {
