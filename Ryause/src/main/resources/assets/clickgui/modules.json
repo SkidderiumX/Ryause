@@ -7445,6 +7445,23 @@
   ]
  },
  {
+  "cls": "ChatEmotesModule",
+  "name": "Chat",
+  "category": "client",
+  "enabled": false,
+  "noToggle": false,
+  "hidden": false,
+  "key": 0,
+  "lite": true,
+  "failed": null,
+  "settings": [
+   {
+    "t": "desc",
+    "name": "Emoji rendering, suggestions and picker in chat."
+   }
+  ]
+ },
+ {
   "cls": "R516",
   "name": "IRC",
   "category": "client",

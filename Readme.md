@@ -36,6 +36,13 @@ Raven's protected scripts carry two recovered layers:
 The plaintext keeps a 32-character trailer, and the client stamps the formula it contains with the
 user's UID: `size * 0.05506` becomes `size * 0.05` + the UID.
 
+## Chat Emojis
+
+Enable the **Chat** module to render emoji shortcodes, autocomplete emoji names, and open the
+emoji picker in chat. Emoji metadata and images are downloaded on demand. The adapted
+unofficial-emojiful-port source is MIT-licensed; its notice is included at
+`Ryause/src/main/resources/META-INF/LICENSE-emojiful-port.txt`.
+
 ## Credits
 
 - Sande: Finding an undetected way to dump and providing the dump

@@ -13,6 +13,7 @@
     "MixinRendererLivingEntity",
     "MixinEntityRenderer",
     "MixinFontRenderer",
+    "MixinEmojiFontRenderer",
     "MixinMovementInputFromOptions",
     "MixinEntityLivingBase",
     "MixinEntity",
