@@ -62,6 +62,7 @@ public final class ModuleManager {
                     m = chatCommands = new ChatCommandsModule(key);
                 } else if (name.equals("Chat")) {
                     m = new ChatEmotesModule(key);
+                    linked.add(m);
                 } else if (name.equals("IRC")) {
                     m = irc = new IrcModule(key);
                 } else if (name.equals("Settings")) {
@@ -137,6 +138,7 @@ public final class ModuleManager {
             case "TargetHUD": return new omg.depchaivl.ryause.module.render.TargetHudModule(key);
             case "Tracers": return new omg.depchaivl.ryause.module.render.TracersModule(key);
             case "Trajectories": return new omg.depchaivl.ryause.module.render.TrajectoriesModule(key);
+            case "Watermark": return new omg.depchaivl.ryause.module.render.WatermarkModule(key);
             case "Xray": return new omg.depchaivl.ryause.module.render.XrayModule(key);
             case "Weather": return new omg.depchaivl.ryause.module.world.WeatherModule(key);
             case "Sprint": return new omg.depchaivl.ryause.module.movement.SprintModule(key);

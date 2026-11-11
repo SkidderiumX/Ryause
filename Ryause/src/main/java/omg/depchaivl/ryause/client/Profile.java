@@ -14,6 +14,7 @@ import omg.depchaivl.ryause.module.ScriptManagerModule;
 import omg.depchaivl.ryause.module.SettingsModule;
 import omg.depchaivl.ryause.module.movement.SprintModule;
 import omg.depchaivl.ryause.module.render.TargetHudModule;
+import omg.depchaivl.ryause.module.render.WatermarkModule;
 import omg.depchaivl.ryause.module.setting.ButtonSetting;
 import omg.depchaivl.ryause.module.setting.Setting;
 import omg.depchaivl.ryause.module.setting.SliderSetting;
@@ -63,6 +64,11 @@ public class Profile {
                         Integer y = integerOrNull(o, "posY");
                         if (x != null) HudModule.posX = x;
                         if (y != null) HudModule.posY = y;
+                    } else if (m instanceof WatermarkModule) {
+                        Integer x = integerOrNull(o, "posX");
+                        Integer y = integerOrNull(o, "posY");
+                        if (x != null) WatermarkModule.posX = x;
+                        if (y != null) WatermarkModule.posY = y;
                     } else if (m == ModuleManager.get("TargetHUD")) {
                         Integer x = integerOrNull(o, "posX");
                         Integer y = integerOrNull(o, "posY");
@@ -164,6 +170,9 @@ public class Profile {
                     if (m == ModuleManager.hud) {
                         w.name("posX").value((long) HudModule.posX);
                         w.name("posY").value((long) HudModule.posY);
+                    } else if (m instanceof WatermarkModule) {
+                        w.name("posX").value((long) WatermarkModule.posX);
+                        w.name("posY").value((long) WatermarkModule.posY);
                     } else if (m == ModuleManager.get("TargetHUD")) {
                         w.name("posX").value((long) TargetHudModule.offsetX);
                         w.name("posY").value((long) TargetHudModule.offsetY);
