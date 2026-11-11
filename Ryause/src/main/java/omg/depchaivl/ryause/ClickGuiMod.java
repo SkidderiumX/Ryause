@@ -8,6 +8,7 @@ import omg.depchaivl.ryause.client.Hypixel;
 import omg.depchaivl.ryause.client.Irc;
 import omg.depchaivl.ryause.client.MiddleClickFriends;
 import omg.depchaivl.ryause.client.Sounds;
+import omg.depchaivl.ryause.client.WindowBranding;
 import omg.depchaivl.ryause.gui.ClickGui;
 import omg.depchaivl.ryause.module.Category;
 import omg.depchaivl.ryause.module.Module;
@@ -36,6 +37,7 @@ public class ClickGuiMod {
 
     @Mod.EventHandler
     public void init(FMLInitializationEvent e) {
+        WindowBranding.apply();
         AccountManager.init();
         ModuleManager.init();
         omg.depchaivl.ryause.script.ScriptReflection.init();
@@ -80,6 +82,7 @@ public class ClickGuiMod {
         if (e.phase != TickEvent.Phase.END) {
             return;
         }
+        WindowBranding.apply();
         if (omg.depchaivl.ryause.util.PacketQueue.active) {
             omg.depchaivl.ryause.util.PacketQueue.tick();
         }
