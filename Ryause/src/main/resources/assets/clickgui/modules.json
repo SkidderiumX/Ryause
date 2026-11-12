@@ -6037,6 +6037,21 @@
    },
    {
     "t": "mode",
+    "name": "Style",
+    "prefix": "",
+    "suffix": "",
+    "value": 0.0,
+    "min": 0.0,
+    "max": 1.0,
+    "step": 1.0,
+    "options": [
+     "Classic",
+     "Logo"
+    ],
+    "labels": null
+   },
+   {
+    "t": "mode",
     "name": "Theme",
     "prefix": "",
     "suffix": "",
@@ -6065,21 +6080,6 @@
     "labels": null
    },
    {
-    "t": "mode",
-    "name": "Style",
-    "prefix": "",
-    "suffix": "",
-    "value": 0.0,
-    "min": 0.0,
-    "max": 1.0,
-    "step": 1.0,
-    "options": [
-     "Classic",
-     "Logo"
-    ],
-    "labels": null
-   },
-   {
     "t": "slider",
     "name": "Scale",
     "prefix": "",
@@ -6094,6 +6094,31 @@
    {
     "t": "button",
     "name": "Edit position",
+    "value": false
+   },
+   {
+    "t": "toggle",
+    "name": "Show FPS",
+    "value": false
+   },
+   {
+    "t": "toggle",
+    "name": "Show ping",
+    "value": false
+   },
+   {
+    "t": "toggle",
+    "name": "Show BPS",
+    "value": false
+   },
+   {
+    "t": "toggle",
+    "name": "Show TPS",
+    "value": false
+   },
+   {
+    "t": "toggle",
+    "name": "Show target",
     "value": false
    }
   ]
