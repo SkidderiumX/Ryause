@@ -1,4 +1,4 @@
-## Open B4
+## Ryause
 
 ---
 
@@ -25,7 +25,7 @@ Run `.\gradlew.bat buildBeta` to create a beta jar under
 `Beta-builds\MMDDYY\Ryause-Beta-MMDDYY+n.jar`. Beta builds use an independent daily
 counter, which is also reflected in the beta jar's mod version.
 
-## Decrypting Scripts - u20
+## Decrypting Scripts - RavenB4 u20
 
 Raven's protected scripts carry two recovered layers:
 
@@ -49,3 +49,4 @@ unofficial-emojiful-port source is MIT-licensed; its notice is included at
 - Abusez: Deobfuscating/Recovering
 - Mega: Deobfuscating/Recovering
 - Chef: Making Raven B4
+- SkidderiumX(aka. claude, codex, gemini and copilot) : Update the client
