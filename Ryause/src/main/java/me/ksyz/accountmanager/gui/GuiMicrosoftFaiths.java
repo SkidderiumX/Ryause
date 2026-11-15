@@ -27,7 +27,6 @@ public class GuiMicrosoftFaiths extends GuiScreen {
       "client_id=<client_id>&redirect_uri=<redirect_uri>&grant_type=authorization_code&code=";
   private static final String XBOX_REFRESH_TOKEN_DATA =
       "client_id=<client_id>&redirect_uri=<redirect_uri>&grant_type=refresh_token&refresh_token=";
-  private static final ExecutorService SHARED_EXECUTOR = Executors.newSingleThreadExecutor();
 
   private final GuiScreen previousScreen;
   private GuiButton cancelButton;
