@@ -20,7 +20,7 @@ public class MixinGuiChat {
         }
 
         int left = inputField.xPosition;
-        int availableWidth = Math.max(1, left + inputField.width - 2);
+        int availableWidth = Math.max(1, inputField.width);
         float size = ChatEmotesModule.getTextBoxSizeMultiplier();
         inputField.width = Math.max(1, Math.min(availableWidth,
                 Math.round(inputField.width * size)));

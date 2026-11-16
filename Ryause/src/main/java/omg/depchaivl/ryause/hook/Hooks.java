@@ -705,6 +705,9 @@ public final class Hooks {
             return;
         }
         if (packet instanceof S03PacketTimeUpdate) {
+            if ((m = on("Watermark")) != null) {
+                omg.depchaivl.ryause.module.render.WatermarkModule.recordTimeUpdate((S03PacketTimeUpdate) packet);
+            }
             if ((m = on("Weather")) != null && !m.onReceivePacket(packet, handler)) {
                 return;
             }
