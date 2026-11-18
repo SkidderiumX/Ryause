@@ -144,6 +144,7 @@ public final class ModuleManager {
             case "Sprint": return new omg.depchaivl.ryause.module.movement.SprintModule(key);
             case "AutoRequeue": return new omg.depchaivl.ryause.module.minigames.AutoRequeueModule(key);
             case "Stop Motion": return new omg.depchaivl.ryause.module.movement.StopMotionModule(key);
+            case "Clutch": return new omg.depchaivl.ryause.module.movement.ClutchModule(key);
             case "Limbo": return new omg.depchaivl.ryause.module.network.LimboModule(key);
             case "Delay Remover": return new omg.depchaivl.ryause.module.player.DelayRemoverModule(key);
             case "GhostHand": return new omg.depchaivl.ryause.module.player.GhostHandModule(key);
