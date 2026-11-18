@@ -1604,7 +1604,7 @@
  {
   "cls": "ClutchModule",
   "name": "Clutch",
-  "category": "movement",
+  "category": "player",
   "enabled": false,
   "noToggle": false,
   "hidden": false,
