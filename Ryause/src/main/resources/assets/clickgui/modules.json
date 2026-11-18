@@ -1602,6 +1602,64 @@
   ]
  },
  {
+  "cls": "ClutchTestModule",
+  "name": "Clutch Test",
+  "category": "player",
+  "enabled": false,
+  "noToggle": false,
+  "hidden": false,
+  "key": 0,
+  "lite": false,
+  "failed": null,
+  "settings": [
+   {
+    "t": "desc",
+    "name": "Places blocks during knockback to clutch a fall."
+   },
+   {
+    "t": "slider",
+    "name": "Min fall",
+    "prefix": "",
+    "suffix": " blocks",
+    "value": 2.0,
+    "min": 0.0,
+    "max": 5.0,
+    "step": 0.5,
+    "options": null,
+    "labels": null
+   },
+   {
+    "t": "slider",
+    "name": "Delay",
+    "prefix": "",
+    "suffix": " ms",
+    "value": 0.0,
+    "min": 0.0,
+    "max": 100.0,
+    "step": 1.0,
+    "options": null,
+    "labels": null
+   },
+   {
+    "t": "slider",
+    "name": "FOV",
+    "prefix": "",
+    "suffix": "°",
+    "value": 120.0,
+    "min": 1.0,
+    "max": 360.0,
+    "step": 1.0,
+    "options": null,
+    "labels": null
+   },
+   {
+    "t": "toggle",
+    "name": "Only-Void",
+    "value": false
+   }
+  ]
+ },
+ {
   "cls": "ClutchModule",
   "name": "Clutch",
   "category": "player",

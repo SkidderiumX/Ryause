@@ -20,7 +20,8 @@ public enum RotationSource {
     AUTOROD(true),
     DISPLACE(true),
     JUMP45(true),
-    JUMPRESET(true);
+    JUMPRESET(true),
+    CLUTCHTEST(true);
 
     public final boolean movementFix;
 

@@ -725,7 +725,7 @@ public final class Hooks {
                 }
                 if (PacketUtils.isKnockback(p)) {
                     long l = System.currentTimeMillis();
-                    String[] order = {"AutoBlock", "Jump Reset", "Hit Select", "KillAura", "AutoClicker", "Clutch"};
+                    String[] order = {"AutoBlock", "Jump Reset", "Hit Select", "KillAura", "AutoClicker", "Clutch", "Clutch Test"};
                     for (String name : order) {
                         if ((m = on(name)) != null) m.onKnockback(p, l);
                     }
