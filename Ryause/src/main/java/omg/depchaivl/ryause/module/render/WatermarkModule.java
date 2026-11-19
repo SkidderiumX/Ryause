@@ -35,11 +35,10 @@ public class WatermarkModule extends Module {
     private static final float LOGO_WIDTH = 128.0F;
     private static final long[] tpsTickSamples = new long[5];
     private static final long[] tpsTimeSamples = new long[5];
-    private static DynamicTexture logoTexture;
-    private static ResourceLocation logoLocation;
-    private static int logoWidth;
-    private static int logoHeight;
-    private static boolean logoLoadAttempted;
+    private static final LogoImage CLASSIC_LOGO = new LogoImage(
+            "/assets/clickgui/watermark-logo.png", "ryause_watermark_classic");
+    private static final LogoImage NGOT_LOGO = new LogoImage(
+            "/assets/clickgui/watermark-logo-ngot.png", "ryause_watermark_ngot");
     private static int tpsSampleIndex;
     private static int tpsSampleCount;
     private static long lastWorldTime = -1L;
@@ -47,7 +46,7 @@ public class WatermarkModule extends Module {
 
     public static int posX = 5, posY = 5;
     public static Theme theme = Theme.DEFAULT;
-    public static SliderSetting themeSetting, scale, style;
+    public static SliderSetting themeSetting, scale, style, logoMode;
     public static ButtonSetting editPosition, showFps, showPing, showBps, showTps, showTarget;
 
     public WatermarkModule(int key) {
@@ -59,6 +58,7 @@ public class WatermarkModule extends Module {
         themeSetting = (SliderSetting) ModuleManager.setting(this, "Theme");
         scale = (SliderSetting) ModuleManager.setting(this, "Scale");
         style = (SliderSetting) ModuleManager.setting(this, "Style");
+        logoMode = (SliderSetting) ModuleManager.setting(this, "Logo mode");
         editPosition = (ButtonSetting) ModuleManager.setting(this, "Edit position");
         showFps = (ButtonSetting) ModuleManager.setting(this, "Show FPS");
         showPing = (ButtonSetting) ModuleManager.setting(this, "Show ping");
@@ -70,6 +70,7 @@ public class WatermarkModule extends Module {
         showBps.visibility = () -> style.getInput() == 0.0;
         showTps.visibility = () -> style.getInput() == 0.0;
         showTarget.visibility = () -> style.getInput() == 0.0;
+        logoMode.visibility = () -> style.getInput() == 1.0;
     }
 
     @Override
@@ -106,13 +107,18 @@ public class WatermarkModule extends Module {
     }
 
     public static float contentWidth() {
-        return style.getInput() == 1.0 ? LOGO_WIDTH
-                : mc.fontRendererObj.getStringWidth(displayText());
+        if (style.getInput() != 1.0) {
+            return mc.fontRendererObj.getStringWidth(displayText());
+        }
+        return selectedLogo().load() ? LOGO_WIDTH : 0.0F;
     }
 
     public static float contentHeight() {
-        return style.getInput() == 1.0 ? logoHeight
-                : mc.fontRendererObj.FONT_HEIGHT;
+        if (style.getInput() != 1.0) {
+            return mc.fontRendererObj.FONT_HEIGHT;
+        }
+        LogoImage logo = selectedLogo();
+        return logo.load() ? LOGO_WIDTH * logo.height / logo.width : 0.0F;
     }
 
     public static String displayText() {
@@ -190,11 +196,12 @@ public class WatermarkModule extends Module {
     }
 
     private static void renderLogo() {
-        if (!loadLogo()) {
+        LogoImage logo = selectedLogo();
+        if (!logo.load()) {
             return;
         }
-        float height = LOGO_WIDTH * logoHeight / logoWidth;
-        mc.getTextureManager().bindTexture(logoLocation);
+        float height = LOGO_WIDTH * logo.height / logo.width;
+        mc.getTextureManager().bindTexture(logo.location);
         GlStateManager.enableBlend();
         GlStateManager.tryBlendFuncSeparate(770, 771, 1, 0);
         GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
@@ -209,59 +216,78 @@ public class WatermarkModule extends Module {
         GlStateManager.disableBlend();
     }
 
-    private static boolean loadLogo() {
-        if (logoLocation != null) {
-            return true;
+    private static LogoImage selectedLogo() {
+        return logoMode.getInput() == 1.0 ? NGOT_LOGO : CLASSIC_LOGO;
+    }
+
+    private static final class LogoImage {
+        private final String resourcePath;
+        private final String textureName;
+        private DynamicTexture texture;
+        private ResourceLocation location;
+        private int width;
+        private int height;
+        private boolean loadAttempted;
+
+        private LogoImage(String resourcePath, String textureName) {
+            this.resourcePath = resourcePath;
+            this.textureName = textureName;
         }
-        if (logoLoadAttempted) {
-            return false;
-        }
-        logoLoadAttempted = true;
-        try (InputStream input = WatermarkModule.class.getResourceAsStream(
-                "/assets/clickgui/watermark-logo.png")) {
-            if (input == null) {
-                throw new IOException("Missing /assets/clickgui/watermark-logo.png");
+
+        private boolean load() {
+            if (this.location != null) {
+                return true;
             }
-            BufferedImage source = ImageIO.read(input);
-            if (source == null) {
-                throw new IOException("Could not decode /assets/clickgui/watermark-logo.png");
+            if (this.loadAttempted) {
+                return false;
             }
-            int left = source.getWidth();
-            int top = source.getHeight();
-            int right = -1;
-            int bottom = -1;
-            for (int y = 0; y < source.getHeight(); y++) {
-                for (int x = 0; x < source.getWidth(); x++) {
-                    if ((source.getRGB(x, y) >>> 24) == 0) {
-                        continue;
-                    }
-                    left = Math.min(left, x);
-                    top = Math.min(top, y);
-                    right = Math.max(right, x);
-                    bottom = Math.max(bottom, y);
+            this.loadAttempted = true;
+            try (InputStream input = WatermarkModule.class.getResourceAsStream(this.resourcePath)) {
+                if (input == null) {
+                    throw new IOException("Missing " + this.resourcePath);
                 }
+                BufferedImage source = ImageIO.read(input);
+                if (source == null) {
+                    throw new IOException("Could not decode " + this.resourcePath);
+                }
+                int left = source.getWidth();
+                int top = source.getHeight();
+                int right = -1;
+                int bottom = -1;
+                for (int y = 0; y < source.getHeight(); y++) {
+                    for (int x = 0; x < source.getWidth(); x++) {
+                        if ((source.getRGB(x, y) >>> 24) == 0) {
+                            continue;
+                        }
+                        left = Math.min(left, x);
+                        top = Math.min(top, y);
+                        right = Math.max(right, x);
+                        bottom = Math.max(bottom, y);
+                    }
+                }
+                if (right < left || bottom < top) {
+                    source.flush();
+                    throw new IOException("Watermark logo is fully transparent: " + this.resourcePath);
+                }
+                this.width = right - left + 1;
+                this.height = bottom - top + 1;
+                BufferedImage cropped = new BufferedImage(this.width, this.height, BufferedImage.TYPE_INT_ARGB);
+                Graphics2D graphics = cropped.createGraphics();
+                try {
+                    graphics.drawImage(source, 0, 0, this.width, this.height,
+                            left, top, right + 1, bottom + 1, null);
+                } finally {
+                    graphics.dispose();
+                    source.flush();
+                }
+                this.texture = new DynamicTexture(cropped);
+                this.location = mc.getTextureManager().getDynamicTextureLocation(this.textureName, this.texture);
+                cropped.flush();
+                return true;
+            } catch (IOException e) {
+                Constants.LOG.error("Could not load the Ryause watermark logo from " + this.resourcePath, e);
+                return false;
             }
-            if (right < left || bottom < top) {
-                throw new IOException("Watermark logo is fully transparent");
-            }
-            logoWidth = right - left + 1;
-            logoHeight = bottom - top + 1;
-            BufferedImage cropped = new BufferedImage(logoWidth, logoHeight, BufferedImage.TYPE_INT_ARGB);
-            Graphics2D graphics = cropped.createGraphics();
-            try {
-                graphics.drawImage(source, 0, 0, logoWidth, logoHeight,
-                        left, top, right + 1, bottom + 1, null);
-            } finally {
-                graphics.dispose();
-                source.flush();
-            }
-            logoTexture = new DynamicTexture(cropped);
-            logoLocation = mc.getTextureManager().getDynamicTextureLocation("ryause_watermark", logoTexture);
-            cropped.flush();
-            return true;
-        } catch (IOException e) {
-            Constants.LOG.error("Could not load the Ryause watermark logo", e);
-            return false;
         }
     }
 }

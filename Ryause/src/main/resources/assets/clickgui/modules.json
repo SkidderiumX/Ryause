@@ -6161,6 +6161,21 @@
    },
    {
     "t": "mode",
+    "name": "Logo mode",
+    "prefix": "",
+    "suffix": "",
+    "value": 0.0,
+    "min": 0.0,
+    "max": 1.0,
+    "step": 1.0,
+    "options": [
+     "Classic",
+     "Ngọt"
+    ],
+    "labels": null
+   },
+   {
+    "t": "mode",
     "name": "Theme",
     "prefix": "",
     "suffix": "",
