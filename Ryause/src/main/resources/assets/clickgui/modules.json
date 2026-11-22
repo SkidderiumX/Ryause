@@ -7802,6 +7802,20 @@
   "settings": [
    {
     "t": "mode",
+    "name": "Mode",
+    "prefix": "",
+    "suffix": "",
+    "value": 0.0,
+    "min": 0.0,
+    "max": 0.0,
+    "step": 1.0,
+    "options": [
+     "Miau"
+    ],
+    "labels": null
+   },
+   {
+    "t": "mode",
     "name": "Scale",
     "prefix": "",
     "suffix": "",

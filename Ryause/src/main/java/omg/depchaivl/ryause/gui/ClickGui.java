@@ -139,7 +139,7 @@ public class ClickGui extends GuiScreen {
     public void drawTitle(float cx, float cy) {
         long now = System.currentTimeMillis();
         float since = now - openedAt;
-        String title = "Ryause";
+        String title = this.getTitle();
         String tag = "Dev";
         float intro = this.clamp(since / 950.0f);
         float base = 2.5f;
@@ -283,6 +283,10 @@ public class ClickGui extends GuiScreen {
         float c3 = c1 + 1.0f;
         float t = f - 1.0f;
         return 1.0f + c3 * t * t * t + c1 * t * t;
+    }
+
+    protected String getTitle() {
+        return "Ryause";
     }
 
     @Override

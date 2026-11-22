@@ -34,11 +34,15 @@ public class CategoryComponent {
     public float scroll;
     public float xOffset;
     public float bigSettingsHeight;
+    public float animatedHeight;
     public float maxHeightRatio = 0.8f;
     public float y;
     public boolean opening;
-    public Animation openAnimation;
-    public long animationDuration = 400L;
+    private static final float OPEN_DURATION_MS = 320.0f;
+    private float animationProgress;
+    private float animationFrom;
+    private long animationStartedAt;
+    private boolean animating;
 
     public CategoryComponent(Category category) {
         this.categoryName = category;
@@ -75,17 +79,57 @@ public class CategoryComponent {
             return;
         }
         this.opened = on;
-        if (on) {
-            this.opening = true;
-            this.closing = false;
+        this.opening = on;
+        this.closing = !on;
+        this.animationFrom = this.animationProgress;
+        this.animationStartedAt = System.currentTimeMillis();
+        this.animating = true;
+    }
+
+    /**
+     * Advances the open/close animation. Time based, so calling it more than once per frame is harmless.
+     * Also keeps {@link #animatedHeight} in sync for the Miau column layout.
+     */
+    public void tickAnimation() {
+        float goal = this.opened ? 1.0f : 0.0f;
+        if (this.animating) {
+            float t = (float) (System.currentTimeMillis() - this.animationStartedAt) / OPEN_DURATION_MS;
+            if (t >= 1.0f) {
+                this.animationProgress = goal;
+                this.animating = false;
+                this.opening = false;
+                this.closing = false;
+            } else {
+                this.animationProgress = this.animationFrom + (goal - this.animationFrom) * easeInOutCubic(t);
+            }
         } else {
-            this.opening = false;
-            this.closing = true;
+            this.animationProgress = goal;
         }
-        if (this.openAnimation == null) {
-            this.openAnimation = new Animation(this.animationDuration);
+        this.animatedHeight = this.animationProgress * this.contentHeight();
+    }
+
+    private float contentHeight() {
+        if (this.modules.isEmpty()) {
+            return 0.0f;
         }
-        this.openAnimation.start();
+        boolean lite = GuiModule.liteMode != null && GuiModule.liteMode.isToggled();
+        float height = 2.0f;
+        for (Component c : this.modules) {
+            if (lite && !((ModuleComponent) c).mod.lite) continue;
+            height += c.getHeight();
+        }
+        this.bigSettingsHeight = height;
+        return Math.min(height, (float) RenderUtils.scaledHeight * this.maxHeightRatio);
+    }
+
+    private static float easeInOutCubic(float t) {
+        if (t <= 0.0f) {
+            return 0.0f;
+        }
+        if (t >= 1.0f) {
+            return 1.0f;
+        }
+        return t < 0.5f ? 4.0f * t * t * t : 1.0f - (float) Math.pow(-2.0f * t + 2.0f, 3.0) / 2.0f;
     }
 
     public void mouseReleased() {
@@ -100,38 +144,12 @@ public class CategoryComponent {
     }
 
     public void render(FontRenderer renderer, int mouseX, int mouseY) {
-        float animated;
-        float target;
+        this.tickAnimation();
+        float animated = this.animatedHeight;
         this.width = 92.0f;
         boolean active = false;
         boolean lite = GuiModule.liteMode.isToggled();
         if ((this.opened || this.closing) && !this.modules.isEmpty()) {
-            animated = 0.0f;
-            float y = target = 2.0f;
-            for (Component c : this.modules) {
-                if (lite && !((ModuleComponent) c).mod.lite) continue;
-                target += c.getHeight();
-            }
-            this.bigSettingsHeight = target;
-            target = Math.min(target, (float) RenderUtils.scaledHeight * this.maxHeightRatio);
-            if (this.openAnimation != null) {
-                float v;
-                if (this.opening) {
-                    v = this.openAnimation.getValue(animated, target, 2);
-                    if (v == target) {
-                        this.opening = false;
-                    }
-                    animated = v;
-                } else if (this.closing) {
-                    v = target - this.openAnimation.getValue(animated, target, 2);
-                    if (v == animated) {
-                        this.closing = false;
-                    }
-                    animated = v;
-                } else {
-                    animated = target;
-                }
-            }
             float top = this.y + this.titleHeight + 3.0f;
             int bottom = (int) ((double) top + Math.floor(animated));
             RenderUtils.roundedRectOutlined(this.x - 2.0f, this.y, this.x + this.width + 2.0f, top + animated, 10.0f,
@@ -140,6 +158,8 @@ public class CategoryComponent {
             GL11.glEnable(3089);
             GL11.glScissor((int) ((this.x - 1.0f) * (float) RenderUtils.scaleFactor), mc.displayHeight - bottom * RenderUtils.scaleFactor,
                     (int) ((this.width + 2.0f) * (float) RenderUtils.scaleFactor), (int) (((float) bottom - top) * (float) RenderUtils.scaleFactor));
+            GL11.glTranslatef(0.0f, -(1.0f - this.animationProgress) * 6.0f, 0.0f);
+            float y = 2.0f;
             for (Component c : this.modules) {
                 ModuleComponent m = (ModuleComponent) c;
                 if (lite && !m.mod.lite) continue;
@@ -169,16 +189,8 @@ public class CategoryComponent {
         }
         GL11.glPushMatrix();
         float nameX = 13.5f;
-        if (this.openAnimation != null) {
-            float center = this.getWidth() / 2.0f - (float) mc.fontRendererObj.getStringWidth(this.categoryName.name()) / 2.0f;
-            if (this.opening) {
-                nameX = this.openAnimation.getValue(nameX, center, 2);
-            } else if (this.closing) {
-                nameX = nameX + center - this.openAnimation.getValue(nameX, center, 2);
-            } else if (this.opened) {
-                nameX = center;
-            }
-        }
+        float center = this.getWidth() / 2.0f - (float) mc.fontRendererObj.getStringWidth(this.categoryName.name()) / 2.0f;
+        nameX += (center - nameX) * this.animationProgress;
         renderer.drawString(this.categoryName.name(), this.x + nameX, this.y + 4.0f, GuiModule.categoryNameColor.rgb, false);
         RenderUtils.resetColor();
         GlStateManager.scale(this.iconScale, this.iconScale, this.iconScale);
