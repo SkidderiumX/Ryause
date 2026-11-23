@@ -82,6 +82,6 @@ public class MiauClickGui extends ClickGui {
 
     @Override
     protected String getTitle() {
-        return "Miau";
+        return "Ryause";
     }
 }

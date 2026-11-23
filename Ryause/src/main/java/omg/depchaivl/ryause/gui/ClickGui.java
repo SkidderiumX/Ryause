@@ -140,7 +140,7 @@ public class ClickGui extends GuiScreen {
         long now = System.currentTimeMillis();
         float since = now - openedAt;
         String title = this.getTitle();
-        String tag = "Dev";
+        String tag = this.getTag();
         float intro = this.clamp(since / 950.0f);
         float base = 2.5f;
         float pulse = 1.0f + (float) Math.sin((double) now * 0.0017) * 0.012f;
@@ -287,6 +287,10 @@ public class ClickGui extends GuiScreen {
 
     protected String getTitle() {
         return "Ryause";
+    }
+
+    protected String getTag() {
+        return "b1";
     }
 
     @Override
