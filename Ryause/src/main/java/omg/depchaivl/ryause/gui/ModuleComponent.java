@@ -128,7 +128,9 @@ public class ModuleComponent extends Component {
     }
 
     public boolean isHovered(int x, int y) {
-        return (float) x > this.left() && (float) x < this.right() && (float) y > this.top() && (float) y < this.bottom();
+        return this.categoryComponent.isContentVisible(x, y)
+                && (float) x > this.left() && (float) x < this.right()
+                && (float) y > this.top() && (float) y < this.bottom();
     }
 
     @Override
@@ -160,6 +162,9 @@ public class ModuleComponent extends Component {
 
     @Override
     public boolean mouseClicked(int x, int y, int b) {
+        if (!this.categoryComponent.isContentVisible(x, y)) {
+            return false;
+        }
         if (this.categoryComponent.opening || this.categoryComponent.closing) {
             return false;
         }

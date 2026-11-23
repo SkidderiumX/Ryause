@@ -203,6 +203,45 @@ public class CategoryComponent {
         return (float) x >= this.x && (float) x <= this.x + 11.0f && (float) y >= this.y + 2.0f && (float) y <= this.y + this.titleHeight + 1.0f;
     }
 
+    /** Top of the scrollable content area, right below the title bar. */
+    public float contentTop() {
+        return this.y + this.titleHeight + 3.0f;
+    }
+
+    /** Bottom of the currently visible (clipped) content area. */
+    public float visibleBottom() {
+        return this.contentTop() + Math.max(0.0f, this.animatedHeight);
+    }
+
+    /**
+     * Whether a point is inside the part of this category that is actually drawn.
+     * Hit tests have to respect the same clip as {@link #render}, otherwise a tall open
+     * category keeps invisible module hitboxes over the categories stacked below it.
+     */
+    public boolean isPointVisible(float px, float py) {
+        if (px < this.x - 1.0f || px > this.x + this.width + 1.0f) {
+            return false;
+        }
+        if (py < this.y) {
+            return false;
+        }
+        if (this.opened || this.closing) {
+            return py <= this.visibleBottom();
+        }
+        return py <= this.y + this.titleHeight + 3.0f;
+    }
+
+    /** Whether a point is inside the clipped module area (excludes the title bar). */
+    public boolean isContentVisible(float px, float py) {
+        if (!(this.opened || this.closing)) {
+            return false;
+        }
+        if (px < this.x - 1.0f || px > this.x + this.width + 1.0f) {
+            return false;
+        }
+        return py >= this.contentTop() && py <= this.visibleBottom();
+    }
+
     public float getX() {
         return this.x;
     }
@@ -252,7 +291,7 @@ public class CategoryComponent {
     }
 
     public boolean isHovered(int x, int y) {
-        return (float) x >= this.x && (float) x <= this.x + this.width && (float) y >= this.y + this.titleHeight && (float) y <= this.y + this.titleHeight + this.yOffset;
+        return (float) y >= this.y + this.titleHeight && this.isPointVisible(x, y);
     }
 
     public void setX(float x) {
