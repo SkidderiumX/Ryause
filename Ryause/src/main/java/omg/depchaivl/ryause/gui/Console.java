@@ -3,6 +3,8 @@ package omg.depchaivl.ryause.gui;
 import omg.depchaivl.ryause.client.ChatCommands;
 import omg.depchaivl.ryause.client.ClientConfig;
 import omg.depchaivl.ryause.client.Friends;
+import omg.depchaivl.ryause.client.ProfileRepo;
+import omg.depchaivl.ryause.client.RemoteProfile;
 import omg.depchaivl.ryause.module.Module;
 import omg.depchaivl.ryause.module.ModuleManager;
 import omg.depchaivl.ryause.module.setting.SliderSetting;
@@ -272,6 +274,10 @@ public final class Console {
             return;
         }
         if (args[0].equalsIgnoreCase("profiles") || args[0].equalsIgnoreCase("p")) {
+            if (hasArgs && args.length >= 2 && args[1].equalsIgnoreCase("online")) {
+                online(args);
+                return;
+            }
             if (!hasArgs) {
                 omg.depchaivl.ryause.client.Profiles.list();
                 return;
@@ -295,6 +301,10 @@ public final class Console {
             print("&eProfiles (p)", 0);
             print("- profiles", 0);
             print("- profiles rename [profile]", 0);
+            print("- profiles online", 0);
+            print("- profiles online get [name]", 0);
+            print("- profiles online apply [name]", 0);
+            print("- profiles online repo [owner/name]", 0);
             print("&eModule-specific", 0);
             print("- cname [name]", 0);
             print("- fakechat [text]", 0);
@@ -343,5 +353,63 @@ public final class Console {
             return;
         }
         print("&cInvalid command. (" + (cmd.length() > 5 ? cmd.substring(0, 5) + "..." : cmd) + ")", 1);
+    }
+
+    /** {@code profiles online [list|refresh|open|repo|get|apply]} */
+    private static void online(String[] args) {
+        String action = args.length >= 3 ? args[2].toLowerCase() : "";
+        if (action.isEmpty() || action.equals("list")) {
+            ProfileRepo.list();
+            return;
+        }
+        if (action.equals("refresh")) {
+            ProfileRepo.fetch(true);
+            print("&aRefreshing profile list...", 1);
+            return;
+        }
+        if (action.equals("open")) {
+            ProfileRepo.fetch(false);
+            mc.displayGuiScreen(new OnlineProfilesScreen());
+            return;
+        }
+        if (action.equals("repo")) {
+            if (args.length < 4) {
+                print("&cUsage: profiles online repo <owner/name>", 1);
+                return;
+            }
+            ProfileRepo.setRepo(join(args, 3));
+            return;
+        }
+        if (action.equals("get") || action.equals("apply")) {
+            if (args.length < 4) {
+                print("&cUsage: profiles online " + action + " <name>", 1);
+                return;
+            }
+            String query = join(args, 3);
+            RemoteProfile profile = ProfileRepo.find(query);
+            if (profile == null) {
+                print("&cUnknown profile: " + query, 1);
+                return;
+            }
+            if (action.equals("apply") && profile.install == ProfileRepo.Install.INSTALLED) {
+                ProfileRepo.apply(profile);
+                return;
+            }
+            ProfileRepo.install(profile, action.equals("apply"));
+            print("Downloading " + profile.displayTitle() + "...", 1);
+            return;
+        }
+        print("&cInvalid syntax.", 1);
+    }
+
+    private static String join(String[] args, int from) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = from; i < args.length; ++i) {
+            if (sb.length() > 0) {
+                sb.append(' ');
+            }
+            sb.append(args[i]);
+        }
+        return sb.toString();
     }
 }

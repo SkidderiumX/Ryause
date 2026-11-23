@@ -8184,6 +8184,11 @@
    },
    {
     "t": "button",
+    "name": "Browse online",
+    "value": false
+   },
+   {
+    "t": "button",
     "name": "Open folder",
     "value": false
    },
