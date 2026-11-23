@@ -210,7 +210,7 @@ public class GuiModule extends Module {
                 MoveUtils.resetTimer();
             }
             applyScale();
-            if (!"Miau".equals(guiMode.getDisplay(false))) {
+            if (!"default".equals(guiMode.getDisplay(false))) {
                 throw new IllegalStateException("Unsupported ClickGUI mode: " + guiMode.getDisplay(false));
             }
             mc.displayGuiScreen(MiauClickGui.instance);

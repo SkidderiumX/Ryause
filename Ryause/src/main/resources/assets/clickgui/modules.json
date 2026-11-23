@@ -7810,7 +7810,7 @@
     "max": 0.0,
     "step": 1.0,
     "options": [
-     "Miau"
+     "default"
     ],
     "labels": null
    },

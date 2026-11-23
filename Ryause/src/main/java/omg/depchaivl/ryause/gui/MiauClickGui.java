@@ -71,12 +71,13 @@ public class MiauClickGui extends ClickGui {
             if (category.dragging) {
                 category.setTargetY(category.getY());
             }
-            int column = Math.round((category.getX() - LEFT) / (CATEGORY_WIDTH + CATEGORY_GAP));
+            float centerX = category.getX() + CATEGORY_WIDTH / 2.0f;
+            int column = (int) Math.floor((centerX - LEFT) / (CATEGORY_WIDTH + CATEGORY_GAP));
             column = Math.max(0, Math.min(columns - 1, column));
             byColumn.get(column).add(category);
         }
         for (List<CategoryComponent> column : byColumn) {
-            Collections.sort(column, Comparator.comparingDouble(CategoryComponent::getTargetY));
+            Collections.sort(column, Comparator.comparingDouble(c -> c.getTargetY() + this.categoryHeight(c) / 2.0f));
             float y = TOP;
             for (CategoryComponent category : column) {
                 if (category.dragging) {
