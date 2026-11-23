@@ -15,6 +15,7 @@ public class MiauClickGui extends ClickGui {
 
     public static MiauClickGui instance;
     private boolean layoutInitialized;
+    private long lastLayoutUpdate;
 
     @Override
     public void initGui() {
@@ -27,6 +28,9 @@ public class MiauClickGui extends ClickGui {
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+        for (CategoryComponent category : categories) {
+            category.mousePosition(mouseX, mouseY);
+        }
         this.updateLayout();
         super.drawScreen(mouseX, mouseY, partialTicks);
     }
@@ -44,10 +48,19 @@ public class MiauClickGui extends ClickGui {
             category.setX(LEFT + column * (CATEGORY_WIDTH + CATEGORY_GAP));
             category.setY(TOP);
         }
-        this.updateLayout();
+        this.updateLayout(true);
     }
 
     private void updateLayout() {
+        this.updateLayout(false);
+    }
+
+    private void updateLayout(boolean snap) {
+        long now = System.currentTimeMillis();
+        long elapsed = this.lastLayoutUpdate == 0L ? 16L : now - this.lastLayoutUpdate;
+        this.lastLayoutUpdate = now;
+        elapsed = Math.max(1L, Math.min(100L, elapsed));
+
         int columns = this.columnCount();
         List<List<CategoryComponent>> byColumn = new ArrayList<List<CategoryComponent>>(columns);
         for (int i = 0; i < columns; i++) {
@@ -55,18 +68,34 @@ public class MiauClickGui extends ClickGui {
         }
         for (CategoryComponent category : categories) {
             category.tickAnimation();
+            if (category.dragging) {
+                category.setTargetY(category.getY());
+            }
             int column = Math.round((category.getX() - LEFT) / (CATEGORY_WIDTH + CATEGORY_GAP));
             column = Math.max(0, Math.min(columns - 1, column));
             byColumn.get(column).add(category);
         }
         for (List<CategoryComponent> column : byColumn) {
-            Collections.sort(column, Comparator.comparingDouble(CategoryComponent::getY));
+            Collections.sort(column, Comparator.comparingDouble(CategoryComponent::getTargetY));
             float y = TOP;
             for (CategoryComponent category : column) {
-                if (!category.dragging) {
-                    category.setY(y);
+                if (category.dragging) {
+                    category.setTargetY(category.getY());
+                    y = Math.max(y, category.getY()) + this.categoryHeight(category) + CATEGORY_GAP;
+                } else {
+                    category.setTargetY(y);
+                    y += this.categoryHeight(category) + CATEGORY_GAP;
                 }
-                y = Math.max(y, category.getY()) + this.categoryHeight(category) + CATEGORY_GAP;
+            }
+        }
+        if (snap) {
+            for (CategoryComponent category : categories) {
+                category.setY(category.getTargetY());
+            }
+        } else {
+            float alpha = 1.0f - (float) Math.exp(-(double) elapsed / 70.0);
+            for (CategoryComponent category : categories) {
+                category.applyLayoutY(alpha);
             }
         }
     }

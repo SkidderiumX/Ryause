@@ -37,6 +37,7 @@ public class CategoryComponent {
     public float animatedHeight;
     public float maxHeightRatio = 0.8f;
     public float y;
+    public float targetY;
     public boolean opening;
     private static final float OPEN_DURATION_MS = 320.0f;
     private float animationProgress;
@@ -284,6 +285,27 @@ public class CategoryComponent {
 
     public void setY(float y) {
         this.y = y;
+        this.targetY = y;
+    }
+
+    public float getTargetY() {
+        return this.targetY;
+    }
+
+    public void setTargetY(float y) {
+        this.targetY = y;
+    }
+
+    /** Eases {@link #y} toward {@link #targetY}. {@code alpha} is 0..1, frame-time corrected. */
+    public void applyLayoutY(float alpha) {
+        if (this.dragging) {
+            this.targetY = this.y;
+            return;
+        }
+        this.y += (this.targetY - this.y) * alpha;
+        if (Math.abs(this.targetY - this.y) < 0.05f) {
+            this.y = this.targetY;
+        }
     }
 
     public float getWidth() {
