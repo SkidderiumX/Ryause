@@ -19,6 +19,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 /**
@@ -227,10 +228,20 @@ public final class ProfileRepo {
                 String reason = null;
                 try {
                     byte[] data = download("profiles/" + p.file + Profiles.EXT, MAX_PROFILE_BYTES);
-                    if (!p.sha1.isEmpty()) {
+                    String expected = p.sha1;
+                    if (!expected.isEmpty()) {
                         String hash = sha1(data);
-                        if (!hash.equalsIgnoreCase(p.sha1)) {
-                            throw new IOException("checksum mismatch");
+                        if (!hash.equalsIgnoreCase(expected)) {
+                            // the CDNs can serve a stale index for a few minutes after a push,
+                            // so ask the uncached API for the current hash before giving up
+                            String fresh = resolveSha1(p.file);
+                            if (fresh != null) {
+                                p.sha1 = fresh;
+                                expected = fresh;
+                            }
+                            if (!hash.equalsIgnoreCase(expected)) {
+                                throw new IOException("checksum mismatch");
+                            }
                         }
                     }
                     File folder = dir();
@@ -368,6 +379,39 @@ public final class ProfileRepo {
 
     private static String downloadText(String path, long max) throws IOException {
         return new String(download(path, max), StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Reads the current SHA-1 of a profile straight from the GitHub contents API, which is
+     * not behind the raw/jsDelivr CDN cache. Only used after a checksum mismatch, so the
+     * unauthenticated rate limit is not a concern.
+     */
+    private static String resolveSha1(String file) {
+        try {
+            byte[] raw = get("https://api.github.com/repos/" + repo + "/contents/index.json?ref=" + BRANCH, MAX_INDEX_BYTES);
+            JsonObject root = new JsonParser().parse(new String(raw, StandardCharsets.UTF_8)).getAsJsonObject();
+            String content = string(root, "content");
+            if (content.isEmpty()) {
+                return null;
+            }
+            String json = new String(Base64.getMimeDecoder().decode(content), StandardCharsets.UTF_8);
+            JsonElement profiles = new JsonParser().parse(json).getAsJsonObject().get("profiles");
+            if (profiles == null || !profiles.isJsonArray()) {
+                return null;
+            }
+            for (JsonElement e : profiles.getAsJsonArray()) {
+                if (!e.isJsonObject()) {
+                    continue;
+                }
+                JsonObject o = e.getAsJsonObject();
+                if (file.equalsIgnoreCase(string(o, "file"))) {
+                    String hash = string(o, "sha1").trim();
+                    return hash.isEmpty() ? null : hash;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
     }
 
     private static byte[] download(String path, long max) throws IOException {
