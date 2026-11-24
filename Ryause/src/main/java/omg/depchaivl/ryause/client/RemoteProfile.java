@@ -14,7 +14,6 @@ public class RemoteProfile {
     public String sha1;
 
     public ProfileRepo.Install install = ProfileRepo.Install.NOT_INSTALLED;
-    public boolean downloading;
 
     public RemoteProfile(String file, String title, String author, String description, String mc, String sha1) {
         this.file = file;

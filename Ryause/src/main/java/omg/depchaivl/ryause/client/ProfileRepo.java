@@ -20,7 +20,10 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Reads the official profile repository (a static GitHub repo) and installs profiles from it.
@@ -63,6 +66,8 @@ public final class ProfileRepo {
     public static List<RemoteProfile> profiles = new ArrayList<RemoteProfile>();
 
     private static boolean busy;
+    /** Profile files with a download in flight, keyed by file name so it survives index refreshes. */
+    private static final Set<String> downloading = Collections.synchronizedSet(new HashSet<String>());
 
     private ProfileRepo() {
     }
@@ -112,6 +117,15 @@ public final class ProfileRepo {
 
     /** Fetches the index. No-op when already loaded unless {@code force} is set. */
     public static void fetch(boolean force) {
+        fetch(force, false);
+    }
+
+    /**
+     * @param force  refetch even when the catalogue is already loaded
+     * @param silent background poll: keeps the current list on screen and does not flip the
+     *               UI into a loading state, so a failed poll is invisible and retried later
+     */
+    public static void fetch(final boolean force, final boolean silent) {
         if (busy) {
             return;
         }
@@ -122,7 +136,9 @@ public final class ProfileRepo {
             stale = true;
         }
         busy = true;
-        state = State.LOADING;
+        if (!silent) {
+            state = State.LOADING;
+        }
         error = null;
         Thread thread = new Thread(new Runnable() {
             @Override
@@ -142,7 +158,7 @@ public final class ProfileRepo {
                     });
                 } catch (Exception e) {
                     error = describe(e);
-                    state = State.ERROR;
+                    state = silent && !profiles.isEmpty() ? State.READY : State.ERROR;
                 } finally {
                     busy = false;
                 }
@@ -155,7 +171,7 @@ public final class ProfileRepo {
     /** Recomputes installed/update state for every catalogue entry. Cheap, main thread only. */
     public static void refreshStates() {
         for (RemoteProfile p : profiles) {
-            if (p.downloading) {
+            if (downloading.contains(p.file)) {
                 p.install = Install.DOWNLOADING;
                 continue;
             }
@@ -212,14 +228,14 @@ public final class ProfileRepo {
 
     /** Downloads (and optionally applies) a profile. */
     public static void install(final RemoteProfile p, final boolean apply) {
-        if (p == null || p.downloading) {
+        if (p == null || downloading.contains(p.file)) {
             return;
         }
         if (p.file.length() > 14 || !Profiles.validName(p.file)) {
             announce("&cInvalid profile name: " + p.file);
             return;
         }
-        p.downloading = true;
+        downloading.add(p.file);
         p.install = Install.DOWNLOADING;
         Thread thread = new Thread(new Runnable() {
             @Override
@@ -266,7 +282,7 @@ public final class ProfileRepo {
                 Minecraft.getMinecraft().addScheduledTask(new Runnable() {
                     @Override
                     public void run() {
-                        p.downloading = false;
+                        downloading.remove(p.file);
                         if (!ok) {
                             p.install = Install.NOT_INSTALLED;
                             refreshStates();

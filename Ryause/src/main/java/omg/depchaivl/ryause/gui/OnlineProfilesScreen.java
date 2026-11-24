@@ -28,6 +28,7 @@ public class OnlineProfilesScreen extends GuiScreen {
     private static final int ROW = 34;
     private static final int BADGE_W = 54;
     private static final int BADGE_H = 14;
+    private static final long AUTO_REFRESH_MS = 5000L;
 
     private int panelX;
     private int panelY;
@@ -35,6 +36,7 @@ public class OnlineProfilesScreen extends GuiScreen {
     private int panelH;
     private float scroll;
     private long openedAt;
+    private long nextRefreshAt;
     private int scaleFactor = 1;
 
     @Override
@@ -51,13 +53,18 @@ public class OnlineProfilesScreen extends GuiScreen {
         } else {
             ProfileRepo.refreshStates();
         }
+        this.nextRefreshAt = System.currentTimeMillis() + AUTO_REFRESH_MS;
         this.clampScroll();
     }
 
     @Override
     public void drawScreen(int mouseX, int mouseY, float partialTicks) {
-        this.drawBackdrop();
         long now = System.currentTimeMillis();
+        if (now >= this.nextRefreshAt) {
+            this.nextRefreshAt = now + AUTO_REFRESH_MS;
+            ProfileRepo.fetch(true, true);
+        }
+        this.drawBackdrop();
         float fade = clamp((float) (now - this.openedAt) / 180.0f);
 
         RenderUtils.roundedRect(this.panelX, this.panelY, this.panelX + this.panelW,
@@ -230,7 +237,8 @@ public class OnlineProfilesScreen extends GuiScreen {
         int rx = this.panelX + this.panelW - PAD - BADGE_W;
         int ry = this.panelY + 9;
         if (inside(mouseX, mouseY, rx, ry, BADGE_W, BADGE_H)) {
-            ProfileRepo.fetch(true);
+            ProfileRepo.fetch(true, false);
+            this.nextRefreshAt = System.currentTimeMillis() + AUTO_REFRESH_MS;
             return;
         }
         int index = this.rowAt(mouseX, mouseY);
