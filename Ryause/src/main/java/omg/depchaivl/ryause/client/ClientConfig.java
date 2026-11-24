@@ -61,9 +61,10 @@ public final class ClientConfig {
                     if (key.equals("default_profile")) {
                         defaultProfile = value;
                     } else if (key.equals("profiles_repo")) {
-                        if (!value.trim().isEmpty()) {
-                            profilesRepo = value.trim();
-                            ProfileRepo.repo = value.trim();
+                        String repo = ProfileRepo.normalize(value);
+                        if (!repo.isEmpty()) {
+                            profilesRepo = repo;
+                            ProfileRepo.repo = repo;
                         }
                     } else if (key.equals("allow_unsafe_scripts")) {
                         if (omg.depchaivl.ryause.module.ScriptManagerModule.allowUnsafe != null) {

@@ -42,7 +42,9 @@ public final class ProfileRepo {
         NOT_INSTALLED, INSTALLED, UPDATE, DOWNLOADING
     }
 
-    public static final String DEFAULT_REPO = "SkidderiumX/Ryause-Official-Profile";
+    public static final String DEFAULT_REPO = "SkidderiumX/Ryause-Official-Profiles";
+    /** Old default before the repository was renamed; migrated on load. */
+    private static final String LEGACY_REPO = "SkidderiumX/Ryause-Official-Profile";
     public static final String BRANCH = "main";
 
     private static final long MAX_INDEX_BYTES = 1024L * 1024L;
@@ -72,14 +74,27 @@ public final class ProfileRepo {
         return new File(ClientConfig.DIR, "profiles-index.json");
     }
 
-    public static void setRepo(String value) {
+    /** Normalises {@code owner/name}, {@code github.com/owner/name} and full URLs. */
+    public static String normalize(String value) {
         String v = value == null ? "" : value.trim();
         while (v.endsWith("/")) {
             v = v.substring(0, v.length() - 1);
         }
         if (v.startsWith("https://github.com/")) {
             v = v.substring("https://github.com/".length());
+        } else if (v.startsWith("http://github.com/")) {
+            v = v.substring("http://github.com/".length());
+        } else if (v.startsWith("github.com/")) {
+            v = v.substring("github.com/".length());
         }
+        if (v.equalsIgnoreCase(LEGACY_REPO)) {
+            v = DEFAULT_REPO;
+        }
+        return v;
+    }
+
+    public static void setRepo(String value) {
+        String v = normalize(value);
         if (!v.matches("[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")) {
             announce("&cRepo must look like owner/name.");
             return;
