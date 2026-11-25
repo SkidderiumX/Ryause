@@ -31,8 +31,9 @@ hs_err_pid*
 chararrays.json
 deob/
 
-# Separate repository (profile distribution)
+# Separate repositories
 /Ryause Official Profile/
+/Ryause Official Site/
 
 # OS
 Thumbs.db
