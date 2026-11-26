@@ -18,7 +18,7 @@ public class ModuleComponent extends Component {
     public boolean opening;
     public boolean wasHovered;
     public Animation animation;
-    public long animationDuration = 200L;
+    public long animationDuration = 280L;
     public double hoverFadeMs = 150.0;
     public boolean opened;
     public boolean closing;
@@ -128,7 +128,9 @@ public class ModuleComponent extends Component {
     }
 
     public boolean isHovered(int x, int y) {
-        return (float) x > this.left() && (float) x < this.right() && (float) y > this.top() && (float) y < this.bottom();
+        return this.categoryComponent.isContentVisible(x, y)
+                && (float) x > this.left() && (float) x < this.right()
+                && (float) y > this.top() && (float) y < this.bottom();
     }
 
     @Override
@@ -141,13 +143,13 @@ public class ModuleComponent extends Component {
             }
             if (this.animation != null) {
                 if (this.opening) {
-                    float v = this.animation.getValue(this.height, h, 2);
+                    float v = this.animation.getValue(this.height, h, 1);
                     if (v == h) {
                         this.opening = false;
                     }
                     h = v;
                 } else if (this.closing) {
-                    float v = this.height + (h - this.animation.getValue(this.height, h, 2));
+                    float v = this.height + (h - this.animation.getValue(this.height, h, 1));
                     if (v == this.height) {
                         this.closing = false;
                     }
@@ -160,6 +162,9 @@ public class ModuleComponent extends Component {
 
     @Override
     public boolean mouseClicked(int x, int y, int b) {
+        if (!this.categoryComponent.isContentVisible(x, y)) {
+            return false;
+        }
         if (this.categoryComponent.opening || this.categoryComponent.closing) {
             return false;
         }

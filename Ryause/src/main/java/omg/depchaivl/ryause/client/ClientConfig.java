@@ -13,6 +13,7 @@ import java.io.FileWriter;
 public final class ClientConfig {
     public static final String DIR = Minecraft.getMinecraft().mcDataDir + File.separator + "keystrokes";
     public static String defaultProfile;
+    public static String profilesRepo = ProfileRepo.DEFAULT_REPO;
 
     private ClientConfig() {
     }
@@ -30,6 +31,7 @@ public final class ClientConfig {
             }
             FileWriter w = new FileWriter(file, false);
             write(w, "default_profile", defaultProfile == null ? "" : defaultProfile);
+            write(w, "profiles_repo", profilesRepo == null ? "" : profilesRepo);
             write(w, "save_categories", GuiModule.saveCategoryPositions.isToggled());
             write(w, "allow_unsafe_scripts", omg.depchaivl.ryause.module.ScriptManagerModule.allowUnsafe != null && omg.depchaivl.ryause.module.ScriptManagerModule.allowUnsafe.isToggled());
             for (CategoryComponent c : ClickGui.categories) {
@@ -58,6 +60,12 @@ public final class ClientConfig {
                     String key = kv[0], value = kv[1];
                     if (key.equals("default_profile")) {
                         defaultProfile = value;
+                    } else if (key.equals("profiles_repo")) {
+                        String repo = ProfileRepo.normalize(value);
+                        if (!repo.isEmpty()) {
+                            profilesRepo = repo;
+                            ProfileRepo.repo = repo;
+                        }
                     } else if (key.equals("allow_unsafe_scripts")) {
                         if (omg.depchaivl.ryause.module.ScriptManagerModule.allowUnsafe != null) {
                             omg.depchaivl.ryause.module.ScriptManagerModule.allowUnsafe.set(value.equals("true"));

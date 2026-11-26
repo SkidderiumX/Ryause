@@ -6,6 +6,7 @@ import omg.depchaivl.ryause.gui.CategoryComponent;
 import omg.depchaivl.ryause.gui.ClickGui;
 import omg.depchaivl.ryause.gui.Component;
 import omg.depchaivl.ryause.gui.ModuleComponent;
+import omg.depchaivl.ryause.gui.MiauClickGui;
 import omg.depchaivl.ryause.module.setting.ButtonSetting;
 import omg.depchaivl.ryause.module.setting.SliderSetting;
 import omg.depchaivl.ryause.util.GuiColor;
@@ -50,6 +51,7 @@ public class GuiModule extends Module {
     public static boolean movementActive;
 
     public static SliderSetting scale, backgroundBlur, scrollSpeed;
+    public static SliderSetting guiMode;
     public static ButtonSetting allowMovement, allowRotating, darkBackground, hidePlayerModel, hideWatermark, liteMode,
             rainbowOutlines, resetPositions, saveCategoryPositions;
 
@@ -58,6 +60,7 @@ public class GuiModule extends Module {
     }
 
     public void link() {
+        guiMode = (SliderSetting) ModuleManager.setting(this, "Mode");
         scale = (SliderSetting) ModuleManager.setting(this, "Scale");
         backgroundBlur = (SliderSetting) ModuleManager.setting(this, "Background blur");
         scrollSpeed = (SliderSetting) ModuleManager.setting(this, "Scroll speed");
@@ -102,7 +105,7 @@ public class GuiModule extends Module {
 
     @Override
     public boolean canBeEnabled() {
-        if (mc.currentScreen == ClickGui.instance) {
+        if (mc.currentScreen instanceof ClickGui) {
             return false;
         }
         if (omg.depchaivl.ryause.module.movement.TimerModule.slowed() && omg.depchaivl.ryause.module.movement.TimerModule.instance.getKeycode() != 0) {
@@ -174,6 +177,18 @@ public class GuiModule extends Module {
     }
 
     public static void resetPositions() {
+        if (ClickGui.instance instanceof MiauClickGui) {
+            for (CategoryComponent c : ClickGui.categories) {
+                for (Component comp : c.modules) {
+                    ModuleComponent m = (ModuleComponent) comp;
+                    if (!m.opened) continue;
+                    m.toggleOpen();
+                }
+                c.setOpened(false);
+            }
+            ((MiauClickGui) ClickGui.instance).resetLayout();
+            return;
+        }
         float y = 5.0f;
         for (CategoryComponent c : ClickGui.categories) {
             for (Component comp : c.modules) {
@@ -190,13 +205,16 @@ public class GuiModule extends Module {
 
     @Override
     public void onEnable() {
-        if (mc.thePlayer != null && mc.theWorld != null && mc.currentScreen != ClickGui.instance) {
+        if (mc.thePlayer != null && mc.theWorld != null && !(mc.currentScreen instanceof ClickGui)) {
             if (omg.depchaivl.ryause.module.movement.TimerModule.speed > 0.0f) {
                 MoveUtils.resetTimer();
             }
             applyScale();
-            mc.displayGuiScreen(ClickGui.instance);
-            ClickGui.instance.initMain();
+            if (!"default".equals(guiMode.getDisplay(false))) {
+                throw new IllegalStateException("Unsupported ClickGUI mode: " + guiMode.getDisplay(false));
+            }
+            mc.displayGuiScreen(MiauClickGui.instance);
+            MiauClickGui.instance.initMain();
         }
         this.disable();
     }

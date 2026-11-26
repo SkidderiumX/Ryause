@@ -43,6 +43,7 @@ public final class RotationManager {
             new Provider("Freecam", false, RotationSource.FREECAM),
             new Provider("Jump Reset", true, RotationSource.JUMPRESET), // u20+ "Aim jump"
             new Provider("AutoBlockin", true, RotationSource.AUTOBLOCKIN),
+            new Provider("Clutch Test", true, RotationSource.CLUTCHTEST),
             new Provider("Scaffold", false, RotationSource.SCAFFOLD),
             new Provider("Long Jump", false, RotationSource.LONGJUMP),
             new Provider("AutoLadder", false, RotationSource.AUTOLADDER),

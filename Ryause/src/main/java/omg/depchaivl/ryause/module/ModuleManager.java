@@ -159,6 +159,7 @@ public final class ModuleManager {
             case "AutoSwap": return new omg.depchaivl.ryause.module.player.AutoSwapModule(key);
             case "FastPlace": return new omg.depchaivl.ryause.module.player.FastPlaceModule(key);
             case "Scaffold": return new omg.depchaivl.ryause.module.player.ScaffoldModule(key);
+            case "Clutch Test": return new omg.depchaivl.ryause.module.player.ClutchTestModule(key);
             case "Tower": return new omg.depchaivl.ryause.module.player.TowerModule(key);
             case "Reach": return new omg.depchaivl.ryause.module.combat.ReachModule(key);
             case "Hitbox": return new omg.depchaivl.ryause.module.combat.HitboxModule(key);

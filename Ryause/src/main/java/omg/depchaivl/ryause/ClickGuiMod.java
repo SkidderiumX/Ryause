@@ -10,6 +10,7 @@ import omg.depchaivl.ryause.client.MiddleClickFriends;
 import omg.depchaivl.ryause.client.Sounds;
 import omg.depchaivl.ryause.client.WindowBranding;
 import omg.depchaivl.ryause.gui.ClickGui;
+import omg.depchaivl.ryause.gui.MiauClickGui;
 import omg.depchaivl.ryause.module.Category;
 import omg.depchaivl.ryause.module.Module;
 import omg.depchaivl.ryause.client.RenderDispatcher;
@@ -42,7 +43,8 @@ public class ClickGuiMod {
         ModuleManager.init();
         omg.depchaivl.ryause.script.ScriptReflection.init();
         omg.depchaivl.ryause.script.ScriptEvents.bind(omg.depchaivl.ryause.script.ScriptDelegated.class);
-        ClickGui.instance = new ClickGui();
+        MiauClickGui.instance = new MiauClickGui();
+        ClickGui.instance = MiauClickGui.instance;
         ClientConfig.load();
         MinecraftForge.EVENT_BUS.register(this);
         MinecraftForge.EVENT_BUS.register(new RenderDispatcher());

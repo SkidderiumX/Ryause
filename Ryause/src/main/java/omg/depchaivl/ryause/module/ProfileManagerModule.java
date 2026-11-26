@@ -2,7 +2,9 @@ package omg.depchaivl.ryause.module;
 
 import omg.depchaivl.ryause.client.Chat;
 import omg.depchaivl.ryause.client.ClientConfig;
+import omg.depchaivl.ryause.client.ProfileRepo;
 import omg.depchaivl.ryause.client.Profiles;
+import omg.depchaivl.ryause.gui.OnlineProfilesScreen;
 import omg.depchaivl.ryause.module.setting.ButtonSetting;
 
 import java.awt.Desktop;
@@ -10,7 +12,7 @@ import java.io.File;
 
 public class ProfileManagerModule extends Module {
     private long lastPress;
-    public static ButtonSetting createProfile, loadProfiles, openFolder, removeDefault;
+    public static ButtonSetting createProfile, loadProfiles, browseOnline, openFolder, removeDefault;
 
     public ProfileManagerModule(Category category, int key) {
         super(Profiles.MANAGER_NAME, category, key);
@@ -20,6 +22,7 @@ public class ProfileManagerModule extends Module {
     public void link() {
         createProfile = (ButtonSetting) ModuleManager.setting(this, "Create profile");
         loadProfiles = (ButtonSetting) ModuleManager.setting(this, "Load profiles");
+        browseOnline = (ButtonSetting) ModuleManager.setting(this, "Browse online");
         openFolder = (ButtonSetting) ModuleManager.setting(this, "Open folder");
         removeDefault = (ButtonSetting) ModuleManager.setting(this, "Remove default profile");
     }
@@ -56,6 +59,11 @@ public class ProfileManagerModule extends Module {
                     int n = Profiles.profiles.size();
                     Chat.print("&7Loaded &b" + n + " &7profile" + (n == 1 ? "." : "s."));
                 }
+            }
+        } else if (b == browseOnline) {
+            if (this.cooldown()) {
+                ProfileRepo.fetch(false);
+                mc.addScheduledTask(() -> mc.displayGuiScreen(new OnlineProfilesScreen()));
             }
         } else if (b == openFolder) {
             File file = new File(ClientConfig.DIR, "profiles");

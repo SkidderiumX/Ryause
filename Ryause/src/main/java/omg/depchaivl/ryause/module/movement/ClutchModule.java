@@ -22,7 +22,7 @@ public class ClutchModule extends Module {
     private boolean enabledScaffold;
 
     public ClutchModule(int key) {
-        super("Clutch", Category.movement, key);
+        super("Clutch", Category.player, key);
         instance = this;
     }
 

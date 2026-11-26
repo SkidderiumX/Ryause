@@ -26,7 +26,7 @@ public final class Watermark {
         fr.drawStringWithShadow("welcome, ", (float) cx, (float) (y - 20), color);
         int end = rainbowText(user, cx += 45, y - 20, fr);
         fr.drawStringWithShadow(" #" + userId, (float) end, (float) (y - 20), color);
-        fr.drawStringWithShadow("Ryause", (float) x, (float) (y - 10), color);
+        fr.drawStringWithShadow("Ryause b1", (float) x, (float) (y - 10), color);
         scramble("dev. ", "SkidderiumX", x, y, animate, fr);
     }
 
